@@ -1,0 +1,27 @@
+﻿product_id;product_name;product_category;brand;package_quantity;package_unit;price;
+currency
+P001;lapte zuzu;lactate;Zuzu;1;l;10.10;RON
+P003;iaurt grecesc;lactate;Olympus;0.4;kg;11.80;RON
+P006;ouÄƒ mÄƒrimea M;ouÄƒ;Ferma Veche;10;buc;13.50;RON
+P009;brÃ¢nzÄƒ telemea;lactate;Hochland;0.3;kg;13.10;RON
+P012;pÃ¢ine albÄƒ;panificaÈ›ie;K-Classic;500;g;3.60;RON
+P015;roÈ™ii cherry;legume È™i fructe;K-Bio;250;g;7.00;RON
+P018;piept pui;carne;Agricola;1;kg;27.90;RON
+P020;spaghetti nr.5;paste fÄƒinoase;Barilla;500;g;5.90;RON
+P022;zahÄƒr tos;alimente de bazÄƒ;MÄƒrgÄƒritar;1;kg;4.50;RON
+P025;apÄƒ platÄƒ;bÄƒuturi;Dorna;2;l;5.30;RON
+P027;banane;legume È™i fructe;Generic;1;kg;6.20;RON
+P029;ulei floarea-soarelui;alimente de bazÄƒ;Floriol;1;l;9.50;RON
+P032;biscuiÈ›i cu unt;gustÄƒri;Milka;0.2;kg;7.50;RON
+P035;cafea mÄƒcinatÄƒ;cafea;Jacobs;0.25;kg;23.00;RON
+P038;detergent lichid;produse de menaj;Ariel;2.5;l;50.50;RON
+P041;È™ampon pÄƒr gras;Ã®ngrijire personalÄƒ;Elseve;400;ml;18.00;RON
+P044;hÃ¢rtie igienicÄƒ 3 straturi;produse de menaj;Pufina;10;role;19.20;RON
+P047;piper negru mÄƒcinat;condimente;Fuchs;50;g;6.10;RON
+P050;vin alb demisec;bÄƒuturi;Recas;0.75;l;24.00;RON
+P053;ciocolatÄƒ neagrÄƒ 70%;gustÄƒri;Heidi;100;g;4.10;RON
+P056;cartofi albi;legume È™i fructe;Generic;1;kg;3.20;RON
+P058;ceapÄƒ galbenÄƒ;legume È™i fructe;Generic;1;kg;2.90;RON
+P059;morcovi;legume È™i fructe;Generic;0.5;kg;2.50;RON
+P060;suc portocale;bÄƒuturi;Cappy;1;l;7.80;RON
+P062;caÈ™caval;lactate;Delaco;0.25;kg;15.00;RON
