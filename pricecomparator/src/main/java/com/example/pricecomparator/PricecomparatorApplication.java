@@ -13,9 +13,5 @@ public class PricecomparatorApplication {
     public static void main(String[] args) {
         SpringApplication.run(PricecomparatorApplication.class, args);
 
-        // TEST: call CSVService to load products and print them
-        CSVService csvService = new CSVService();
-        List<Product> products = csvService.loadProducts("csv/lidl_2025-05-01");
-        products.forEach(System.out::println);
     }
 }
