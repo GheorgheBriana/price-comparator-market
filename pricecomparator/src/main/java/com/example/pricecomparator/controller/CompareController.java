@@ -14,12 +14,12 @@ import com.example.pricecomparator.service.CompareService;
 
 @RestController
 @RequestMapping("/compare") //path
-public class CompareComparatorController {
+public class CompareController {
 
     private final CSVService csvService;
     private final CompareService comparatorService;
 
-    public CompareComparatorController() {
+    public CompareController() {
         this.csvService = new CSVService();
         this.comparatorService = new CompareService();
     }
