@@ -16,8 +16,8 @@ public class ProductsController {
     private final CSVService csvService;
 
     // constructor
-    public ProductsController() {
-        this.csvService = new CSVService();
+    public ProductsController(CSVService csvService) {
+        this.csvService = csvService;
     }
 
     // GET

@@ -16,8 +16,8 @@ public class DiscountsController {
     private final CSVService csvService;
 
     //Constructor
-    public DiscountsController() {
-        this.csvService = new CSVService();
+    public DiscountsController(CSVService csvService) {
+        this.csvService = csvService;
     }
 
     // GET /discounts/{store}/{date}
