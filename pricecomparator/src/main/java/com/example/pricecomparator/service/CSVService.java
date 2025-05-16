@@ -11,10 +11,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 @Service
 public class CSVService {
@@ -25,7 +25,7 @@ public class CSVService {
         
         // get file from resources folder (classpath)
         InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
-        
+
         // check if file exists
         if (is == null) {
             log.warn("File not found: {}", filePath);
@@ -34,6 +34,11 @@ public class CSVService {
 
         // read file line by line
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
+            String storeName = fileName.contains("_") 
+                ? fileName.substring(0, fileName.indexOf("_")).toLowerCase()
+                : "unknown";
+
             String line;
             boolean firstLine = true;
 
@@ -48,6 +53,7 @@ public class CSVService {
                     log.warn("Skipping bad line in {}: {}", filePath, line);
                     continue;
                 }
+
                 try {
                     double packageQuantity = Double.parseDouble(fields[4]);
                     double price = Double.parseDouble(fields[6]);
@@ -55,7 +61,7 @@ public class CSVService {
                         log.warn("Invalid product data in {}: {}", filePath, line);
                         continue;
                     }
-                        
+
                     Product product = new Product(
                             fields[0], // productId
                             fields[1], // productName
@@ -64,10 +70,11 @@ public class CSVService {
                             packageQuantity,
                             fields[5], // packageUnit
                             price,
-                            fields[7] // currency
+                            fields[7], // currency
+                            storeName
                     );
                     products.add(product);
-            
+
                 } catch (NumberFormatException e) {
                     log.warn("Number parsing error in {}: {}", filePath, line);
                 }
@@ -75,6 +82,7 @@ public class CSVService {
         } catch (IOException e) {
             log.error("Error reading file {}: {}", filePath, e.getMessage());
         }
+
         return products;
     }
 
@@ -88,6 +96,11 @@ public class CSVService {
         }
 
         try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            String fileName  = filePath.substring(filePath.lastIndexOf('/') + 1);
+            String storeName = fileName.contains("_")
+                            ? fileName.substring(0, fileName.indexOf('_')).toLowerCase()
+                            : "unknown";
+            
             String line;
             boolean firstLine = true;
             SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
@@ -99,26 +112,35 @@ public class CSVService {
                 }
 
                 String[] fields = line.split(";");
-                if (fields.length < 9) continue;   // corect ar fi 9 coloane pentru modelul tău
-                Discount discount = new Discount(
+                if (fields.length < 9) {
+                    log.warn("Skipping invalid discount line in {}: {}", filePath, line);
+                    continue;
+                }
+
+                try {
+                    Discount discount = new Discount(
                         fields[0],                             // productId
                         fields[1],                             // productName
                         fields[2],                             // brand
                         Double.parseDouble(fields[3]),         // packageQuantity
-                        fields[4],                             // packageUnit
-                        fields[5],                             // productCategory
+                        fields[4].trim().toLowerCase(),        // packageUnit
+                        fields[5].toLowerCase(),               // productCategory
                         formatter.parse(fields[6]),            // fromDate
                         formatter.parse(fields[7]),            // toDate
-                        Double.parseDouble(fields[8])          // percentageOfDiscount
-                );
-                discounts.add(discount);
+                        Double.parseDouble(fields[8]),         // percentageOfDiscount
+                        storeName
+                    );
+                    discounts.add(discount);
+
+                } catch (ParseException | NumberFormatException e) {
+                    log.warn("Parsing error in {}: {}", filePath, line);
+                }
             }
 
-        } catch (IOException | ParseException e) {
+        } catch (IOException e) {
             log.error("Error reading discounts file {}: {}", filePath, e.getMessage());
         }
 
         return discounts;
     }
 }
-

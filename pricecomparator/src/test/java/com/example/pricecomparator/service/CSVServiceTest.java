@@ -1,7 +1,6 @@
 package com.example.pricecomparator.service;
 
 import java.util.List;
-//maine pun comentarii in csv service si test service
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
