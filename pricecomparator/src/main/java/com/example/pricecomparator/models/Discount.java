@@ -19,4 +19,5 @@ public class Discount {
     private Date fromDate;
     private Date toDate;
     private double percentageOfDiscount;
+    private String store;
 }

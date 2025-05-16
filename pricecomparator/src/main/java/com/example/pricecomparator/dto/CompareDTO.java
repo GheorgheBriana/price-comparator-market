@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class CompareDTO {
     private String productId;
     private String productName;
-    private double proceStore1;
+    private double priceStore1;
     private double priceStore2;
     private String cheapestStore;
 }
