@@ -12,10 +12,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 @Service
 public class CSVService {
-
+    private static final Logger log = LoggerFactory.getLogger(CSVService.class);
     // method to read products from CSV file and return a list of Product objects
     public List<Product> loadProducts(String filePath) {
         List<Product> products = new ArrayList<>();
@@ -25,7 +28,7 @@ public class CSVService {
         
         // check if file exists
         if (is == null) {
-            System.out.println("File not found: " + filePath);
+            log.warn("File not found: {}", filePath);
             return products;
         }
 
@@ -41,23 +44,37 @@ public class CSVService {
                 }
 
                 String[] fields = line.split(";");
-                if (fields.length < 8) continue;  // skip bad/empty lines
-                Product product = new Product(
-                        fields[0], // productId
-                        fields[1], // productName
-                        fields[2], // productCategory
-                        fields[3], // brand
-                        Double.parseDouble(fields[4]), // packageQuantity
-                        fields[5], // packageUnit
-                        Double.parseDouble(fields[6]), // price
-                        fields[7] // currency
-                );
-                products.add(product);
+                if (fields.length < 8) {
+                    log.warn("Skipping bad line in {}: {}", filePath, line);
+                    continue;
+                }
+                try {
+                    double packageQuantity = Double.parseDouble(fields[4]);
+                    double price = Double.parseDouble(fields[6]);
+                    if(packageQuantity <= 0 || price < 0) {
+                        log.warn("Invalid product data in {}: {}", filePath, line);
+                        continue;
+                    }
+                        
+                    Product product = new Product(
+                            fields[0], // productId
+                            fields[1], // productName
+                            fields[2], // productCategory
+                            fields[3], // brand
+                            packageQuantity,
+                            fields[5], // packageUnit
+                            price,
+                            fields[7] // currency
+                    );
+                    products.add(product);
+            
+                } catch (NumberFormatException e) {
+                    log.warn("Number parsing error in {}: {}", filePath, line);
+                }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Error reading file {}: {}", filePath, e.getMessage());
         }
-
         return products;
     }
 
@@ -66,7 +83,7 @@ public class CSVService {
         InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
 
         if (is == null) {
-            System.out.println("File not found: " + filePath);
+            log.warn("File not found: {}", filePath);
             return discounts;
         }
 
@@ -98,7 +115,7 @@ public class CSVService {
             }
 
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            log.error("Error reading discounts file {}: {}", filePath, e.getMessage());
         }
 
         return discounts;
