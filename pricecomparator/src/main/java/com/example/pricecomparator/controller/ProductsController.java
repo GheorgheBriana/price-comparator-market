@@ -8,16 +8,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.pricecomparator.models.Product;
-import com.example.pricecomparator.service.CSVService;
+import com.example.pricecomparator.service.ProductService;
 
 @RestController
 @RequestMapping("/products") // path for products API
 public class ProductsController {
-    private final CSVService csvService;
+    private final ProductService productService;
 
     // constructor
-    public ProductsController(CSVService csvService) {
-        this.csvService = csvService;
+    public ProductsController(ProductService productService) {
+        this.productService = productService;
     }
 
     // GET
@@ -30,7 +30,7 @@ public class ProductsController {
         String fileName = String.format("csv/%s_%s.csv", store, date);
 
         // load products from CSV
-        return csvService.loadProducts(fileName);
+        return productService.loadProductsFromCsv(fileName);
     }
 }
 

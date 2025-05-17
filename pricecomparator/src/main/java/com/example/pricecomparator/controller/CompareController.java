@@ -9,21 +9,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.pricecomparator.dto.CompareDTO;
 import com.example.pricecomparator.models.Product;
-import com.example.pricecomparator.service.CSVService;
+import com.example.pricecomparator.service.ProductService;
 import com.example.pricecomparator.service.CompareService;
 import com.example.pricecomparator.service.FileService;
 
 @RestController
 @RequestMapping("/compare") //path
 public class CompareController {
-    private final CSVService csvService;
+    private final ProductService productService;
     private final CompareService comparatorService;
-    private final FileService fileService; // nou
+    private final FileService fileService;
 
-    public CompareController(CSVService csvService, CompareService compareService, FileService fileService) {
-        this.csvService = csvService;
+    public CompareController(ProductService productService, CompareService compareService, FileService fileService) {
+        this.productService = productService;
         this.comparatorService = compareService;
-        this.fileService = fileService;  // nou
+        this.fileService = fileService;
     }
     
     @GetMapping("/{store1}/{date1}/{store2}/{date2}")
@@ -37,28 +37,22 @@ public class CompareController {
         List<String> store1Files = fileService.getFileNames("csv", store1, date1);
         List<String> store2Files = fileService.getFileNames("csv", store2, date2);
 
-        // 2️⃣ DEBUG – vezi ce s-a găsit
-        System.out.println("store1Files = " + store1Files);
-        System.out.println("store2Files = " + store2Files);
-
         if (store1Files.isEmpty() || store2Files.isEmpty()) {
             throw new RuntimeException(
                 "No CSV found for " + store1 + "/" + date1 + " or " + store2 + "/" + date2);
         }
-        
-        String file1 = store1Files.get(0); //first found file
+
+        String file1 = store1Files.get(0);
         String file2 = store2Files.get(0);
 
-        // load products from both files
-        List<Product> productsStore1 = csvService.loadProducts(file1);
-        List<Product> productsStore2 = csvService.loadProducts(file2);
+        // load products from both files using ProductService
+        List<Product> productsStore1 = productService.loadProductsFromCsv(file1);
+        List<Product> productsStore2 = productService.loadProductsFromCsv(file2);
+
         System.out.println("Loaded " + productsStore1.size() + " products from " + file1);
         System.out.println("Loaded " + productsStore2.size() + " products from " + file2);
 
-        // compare products
-        List<CompareDTO> compareResults = comparatorService.compareProducts(productsStore1, productsStore2);
-
-        //compare and return result
-        return compareResults;
+        // compare
+        return comparatorService.compareProducts(productsStore1, productsStore2);
     }
 }
