@@ -1,53 +1,179 @@
 package com.example.pricecomparator.service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
+import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
+import com.example.pricecomparator.models.Discount;
+import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Date;
 
-import org.springframework.stereotype.Service;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
-import com.example.pricecomparator.models.Discount;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
 @Service
 public class DiscountService {
-    private final ProductService csvService;
+    private static final Logger log = LoggerFactory.getLogger(DiscountService.class);
     private final FileService fileService;
 
-    //constructor
-    public DiscountService(ProductService csvService, FileService fileService) {
-        this.csvService = csvService;
-        this.fileService = fileService;
+    public DiscountService(FileService fileService) {
+    this.fileService = fileService;
+}
+
+
+    public List<Discount> loadDiscountFromCsv(String filePath) {
+        List<Discount> discounts = new ArrayList<>();
+
+        // takes file from resources
+        InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
+
+        // verify if file exists
+        if(is == null) {
+            log.warn("File not found: {}", filePath);
+            return discounts;
+        }
+
+        // open file and read line by line
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+        
+            // extract name file
+            String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
+
+            //extract name of the store from file
+            String storeName = fileName.contains("_") ? fileName.substring(0, fileName.indexOf("_")).toLowerCase():"unknown";
+
+            String line;
+            boolean firstLine = true; // ignore csv header
+            SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+
+            while ((line = br.readLine()) != null) {
+                if(firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+
+                // extract values from every csv line
+                String[] fields = line.split(";");
+
+                // verify if there are enough columns
+                if(fields.length < 9) {
+                    log.warn("Skipping bad line in {}: {}", filePath, line);
+                    continue;
+                }
+
+                try {
+                    
+                    // converting and validations
+                    double packageQuantity = Double.parseDouble(fields[3].trim());
+                    double percentageOfDiscount = Double.parseDouble(fields[8].trim());
+                    Date fromDate = formatter.parse(fields[6].trim());
+                    Date toDate = formatter.parse(fields[7].trim());
+
+                    // valid data and positive discount
+                    if(packageQuantity <= 0 || percentageOfDiscount <= 0 || !fromDate.before(toDate)) {
+                        log.warn("Invalid discount values in {}: {}", filePath, line);
+                        continue;
+                    }
+
+                    // create Discount object
+                    Discount discount = new Discount(
+                           fields[0].trim(),                   // productId
+                            fields[1].trim(),                   // productName
+                            fields[2].trim(),                   // brand
+                            packageQuantity,                    // quantity
+                            fields[4].trim().toLowerCase(),     // unit
+                            fields[5].trim().toLowerCase(),     // category
+                            fromDate,                           // fromDate
+                            toDate,                             // toDate
+                            percentageOfDiscount,               // percentageOfDiscount
+                            storeName                           // store
+                    );
+
+                    // add object in list
+                     discounts.add(discount);
+
+                } catch (ParseException | NumberFormatException e) {
+                    log.warn("Parsing error in {}: {}", filePath, line);
+                }
+            }
+
+                // catch file reading errors
+        } catch (IOException e) {
+            log.error("Error reading discounts file {}: {}", filePath, e.getMessage());
+        }
+
+        return discounts;
     }
 
     public List<Discount> getBestDiscounts(String directoryPath, String store, String date) {
-        
+
+        // exception if store name is not valid
         if(store == null || store.isBlank()) {
             throw new IllegalArgumentException("Store name is invalid");
         }
-        
+
+        // exception if date is not valid
         if(!isValidDate(date)) {
             throw new IllegalArgumentException("Invalid date. Use the YYYY-MM-DD format");
         }
 
-        // search all CSV files for a specific store and date
-        String storePattern = store + "_discounts"; // we'll use this variable to only serch for the files that have "_discounts" in their name
-        List<String> fileNames = fileService.getFileNames(directoryPath, storePattern, date);
-
-        // verify if files were found
-        if(fileNames.isEmpty()) {
-            throw new IllegalStateException("There are no discounts for the store: " + store + " on date: " + date);
+        // search files
+        String pattern = store + "_discounts";
+        List<String> files = fileService.getFileNames(directoryPath, pattern, date);
+        if(files.isEmpty()) {
+            throw new IllegalStateException("No discounts found for store/date");
         }
 
-        // get all the discounts from all files found
-        List<Discount> allDiscounts = new ArrayList<>();
-        for(String fileName : fileNames) {
-            allDiscounts.addAll(csvService.loadDiscounts(fileName));
+        // load and sort discounts
+        List<Discount> discounts = new ArrayList<>();
+        for(String file : files) {
+            discounts.addAll(loadDiscountFromCsv(file));
+        }
+        discounts.sort(Comparator.comparingDouble(Discount::getPercentageOfDiscount).reversed());
+        return discounts;        
+    }
+
+    public List<DiscountBestGlobalDTO> getGlobalTopDiscounts(String directoryPath) {
+        // search all files that have the word "discounts" in name
+        List<String> allFiles = fileService.getFileNames(directoryPath, "discounts", "");
+        if(allFiles.isEmpty()) {
+            throw new IllegalStateException("No discount files found");
         }
 
-        // sort descending by percentage
-        allDiscounts.sort(Comparator.comparingDouble(Discount::getPercentageOfDiscount).reversed());
+        // load all discounts from all files
+        List<DiscountBestGlobalDTO> allDiscounts = new ArrayList<>();
+
+        for (String file : allFiles) { // ✅ NOU – păstrăm numele fișierului pentru fiecare DTO
+            List<Discount> discounts = loadDiscountFromCsv(file);
+            for (Discount d : discounts) {
+                allDiscounts.add(new DiscountBestGlobalDTO(
+                    d.getProductId(),
+                    d.getProductName(),
+                    d.getBrand(),
+                    d.getPackageQuantity(),
+                    d.getPackageUnit(),
+                    d.getProductCategory(),
+                    d.getFromDate(),
+                    d.getToDate(),
+                    d.getPercentageOfDiscount(),
+                    d.getStore(),
+                    file // ✅ aici salvăm numele fișierului sursă
+                ));
+            }
+        }
+
+        allDiscounts.sort(Comparator.comparingDouble(DiscountBestGlobalDTO::getPercentageOfDiscount).reversed());
 
         return allDiscounts;
     }
@@ -60,4 +186,7 @@ public class DiscountService {
             return false;
         }
     }
+ 
 }
+
+
