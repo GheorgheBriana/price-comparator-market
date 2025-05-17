@@ -1,0 +1,4 @@
+product_id;product_name;brand;package_quantity;package_unit;product_category;from_date;to_date;percentage_of_discount
+P002;iaurt grecesc;Profi;0.4;kg;lactate;2025-05-16;2025-05-22;11
+P019;piept pui;Avicola;1.0;kg;carne;2025-05-16;2025-05-22;9
+P034;cafea măcinată;Tchibo;0.25;kg;cafea;2025-05-16;2025-05-22;14

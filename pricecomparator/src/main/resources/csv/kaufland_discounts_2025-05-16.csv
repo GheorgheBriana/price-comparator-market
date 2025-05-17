@@ -1,0 +1,4 @@
+product_id;product_name;brand;package_quantity;package_unit;product_category;from_date;to_date;percentage_of_discount
+P001;lapte zuzu;Zuzu;1.0;l;lactate;2025-05-16;2025-05-22;10
+P009;brânză telemea;Hochland;0.3;kg;lactate;2025-05-16;2025-05-22;12
+P020;spaghetti nr.5;Barilla;500.0;g;paste făinoase;2025-05-16;2025-05-22;15
