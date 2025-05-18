@@ -17,6 +17,12 @@ import com.example.pricecomparator.models.Product;
 public class ProductService {
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
 
+        private final FileService fileService; // 1️⃣ se declară aici
+
+    public ProductService(FileService fileService) { // 2️⃣ se injectează aici
+        this.fileService = fileService;
+    }
+
     public List<Product> loadProductsFromCsv(String filePath) {
         List<Product> products = new ArrayList<>();
 
@@ -96,5 +102,18 @@ public class ProductService {
         return products;
 
     }
+
+    public List<Product> loadAllProductsFromCsvDirectory() {
+        List<Product> allProducts = new ArrayList<>();
+
+        List<String> csvFiles = fileService.getFileNames("csv", "", "");
+
+        for (String filePath : csvFiles) {
+            allProducts.addAll(loadProductsFromCsv(filePath));
+        }
+
+        return allProducts;
+    }
+
 
 }

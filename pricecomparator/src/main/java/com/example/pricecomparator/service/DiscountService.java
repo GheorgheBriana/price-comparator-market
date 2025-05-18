@@ -31,7 +31,6 @@ public class DiscountService {
     this.fileService = fileService;
 }
 
-
     public List<Discount> loadDiscountFromCsv(String filePath) {
         List<Discount> discounts = new ArrayList<>();
 
@@ -107,12 +106,10 @@ public class DiscountService {
                     log.warn("Parsing error in {}: {}", filePath, line);
                 }
             }
-
-                // catch file reading errors
+        // catch file reading errors
         } catch (IOException e) {
             log.error("Error reading discounts file {}: {}", filePath, e.getMessage());
         }
-
         return discounts;
     }
 
@@ -122,19 +119,16 @@ public class DiscountService {
         if(store == null || store.isBlank()) {
             throw new IllegalArgumentException("Store name is invalid");
         }
-
         // exception if date is not valid
         if(!isValidDate(date)) {
             throw new IllegalArgumentException("Invalid date. Use the YYYY-MM-DD format");
         }
-
         // search files
         String pattern = store + "_discounts";
         List<String> files = fileService.getFileNames(directoryPath, pattern, date);
         if(files.isEmpty()) {
             throw new IllegalStateException("No discounts found for store/date");
         }
-
         // load and sort discounts
         List<Discount> discounts = new ArrayList<>();
         for(String file : files) {
@@ -150,11 +144,9 @@ public class DiscountService {
         if(allFiles.isEmpty()) {
             throw new IllegalStateException("No discount files found");
         }
-
         // load all discounts from all files
         List<DiscountBestGlobalDTO> allDiscounts = new ArrayList<>();
-
-        for (String file : allFiles) { // ✅ NOU – păstrăm numele fișierului pentru fiecare DTO
+        for (String file : allFiles) { 
             List<Discount> discounts = loadDiscountFromCsv(file);
             for (Discount d : discounts) {
                 allDiscounts.add(new DiscountBestGlobalDTO(
@@ -168,13 +160,13 @@ public class DiscountService {
                     d.getToDate(),
                     d.getPercentageOfDiscount(),
                     d.getStore(),
-                    file // ✅ aici salvăm numele fișierului sursă
+                    file
                 ));
             }
         }
 
+        // sort discounts by percentage in descending order
         allDiscounts.sort(Comparator.comparingDouble(DiscountBestGlobalDTO::getPercentageOfDiscount).reversed());
-
         return allDiscounts;
     }
 
