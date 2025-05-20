@@ -172,7 +172,12 @@ public class DiscountService {
     }
 
     public List<Discount> getNewDiscounts(String directoryPath) {
-        List<Discount> allDiscounts = loadDiscountFromCsv(directoryPath);
+    List<String> allFiles = fileService.getFileNames(directoryPath, "discounts", "");
+    List<Discount> allDiscounts = new ArrayList<>();
+
+    for (String file : allFiles) {
+        allDiscounts.addAll(loadDiscountFromCsv(file));
+    }
         List<Discount> newDiscounts = new ArrayList<>();
 
         LocalDate currentDate = LocalDate.now();
@@ -186,7 +191,7 @@ public class DiscountService {
                                             .atZone(zoneId)
                                             .toLocalDate();
 
-                if (fromDate.isEqual(yesterday)) {
+                if (!fromDate.isBefore(yesterday)) {
                     newDiscounts.add(discount);
                 }
             }
