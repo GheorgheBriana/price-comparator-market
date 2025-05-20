@@ -17,6 +17,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 
 import org.slf4j.LoggerFactory;
@@ -168,6 +169,30 @@ public class DiscountService {
         // sort discounts by percentage in descending order
         allDiscounts.sort(Comparator.comparingDouble(DiscountBestGlobalDTO::getPercentageOfDiscount).reversed());
         return allDiscounts;
+    }
+
+    public List<Discount> getNewDiscounts(String directoryPath) {
+        List<Discount> allDiscounts = loadDiscountFromCsv(directoryPath);
+        List<Discount> newDiscounts = new ArrayList<>();
+
+        LocalDate currentDate = LocalDate.now();
+        LocalDate yesterday = currentDate.minusDays(1);
+
+        ZoneId zoneId = ZoneId.systemDefault();
+        for (Discount discount : allDiscounts) {
+            if (discount.getFromDate() != null) {
+                LocalDate fromDate = discount.getFromDate()
+                                            .toInstant()
+                                            .atZone(zoneId)
+                                            .toLocalDate();
+
+                if (fromDate.isEqual(yesterday)) {
+                    newDiscounts.add(discount);
+                }
+            }
+        }
+        return newDiscounts;
+    
     }
 
     private boolean isValidDate(String date) {
