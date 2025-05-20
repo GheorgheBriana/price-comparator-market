@@ -1,0 +1,5 @@
+product_id;product_name;brand;package_quantity;package_unit;product_category;from_date;to_date;percentage_of_discount
+P100;lapte bio;Zuzu;1;l;lactate;2025-05-19;2025-05-25;10
+P101;pâine integrală;Lidl;500;g;panificație;2025-05-20;2025-05-24;5
+P102;roșii cherry;Lidl;250;g;legume și fructe;2025-05-20;2025-05-26;8
+P103;apă plată;Aqua Carpatica;2;l;băuturi;2025-05-18;2025-05-24;4

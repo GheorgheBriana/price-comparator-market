@@ -1,5 +1,7 @@
 package com.example.pricecomparator.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -99,6 +101,37 @@ public class DiscountServiceTest {
             assertTrue(
                 result.get(i).getPercentageOfDiscount() >= result.get(i+1).getPercentageOfDiscount(), "Discounts should be sorted descending by percentage"
             );
+        }
+    }
+
+    //--------------------------------
+    // Test GetNewDiscounts method
+    //--------------------------------
+    @Test
+    void testGetNewDiscountsReturnsRecentDiscounts() {
+        String directoryPath = "csv";
+
+        // call method that should return discounts added in the last 24h
+        List<Discount> newDiscounts = discountService.getNewDiscounts(directoryPath);
+
+        // verify if result is not null
+        assertNotNull(newDiscounts, "List of new discounts should not be null");
+
+        // verify if list contains at least one discount (based on test CSVs)
+        assertFalse(newDiscounts.isEmpty(), "There should be at least one recent discount");
+
+        // define yesterday's date to compare against
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        ZoneId zoneId = ZoneId.systemDefault();
+
+        // check that each discount has a valid fromDate and it is not older than yesterday
+        for (Discount discount : newDiscounts) {
+            assertNotNull(discount.getFromDate(), "fromDate should not be null");
+
+            LocalDate fromDate = discount.getFromDate().toInstant().atZone(zoneId).toLocalDate();
+
+            // verify if the discount was added yesterday or today
+            assertFalse(fromDate.isBefore(yesterday), "Discount should be from yesterday or today");
         }
     }
 
