@@ -5,6 +5,7 @@ import java.util.List;
 import com.example.pricecomparator.models.Discount;
 import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,22 @@ public class DiscountsController {
             return ResponseEntity.ok(discounts);
         } catch (IllegalStateException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+    // GET /discounts/new
+    @GetMapping("/new")
+    public ResponseEntity<List<Discount>> getNewDiscounts() {
+        try {
+            List<Discount> discounts = discountService.getNewDiscounts("csv");
+            // if there are no new discounts => HTTP 204
+            if(discounts.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            // if there are new discounts => returns list + status 200
+            return ResponseEntity.ok(discounts);
+            // if there is other error => HTTP 500
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
