@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class PriceHistoryDTO {
     String from_date;
     String store;
-    String percentageOfDiscount;
+    double percentageOfDiscount;
 }
