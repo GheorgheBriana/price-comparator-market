@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
+import com.example.pricecomparator.dto.PriceHistoryDTO;
 import com.example.pricecomparator.models.Discount;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -132,6 +133,50 @@ public class DiscountServiceTest {
 
             // verify if the discount was added yesterday or today
             assertFalse(fromDate.isBefore(yesterday), "Discount should be from yesterday or today");
+        }
+    }
+
+    //--------------------------------
+    // Test GetPriceHistory method
+    //--------------------------------
+    @Test
+    void testGetPriceHistoryWithFilters() {
+        String productId = "P001";
+        String store = "lidl";
+        String brand = "Zuzu";
+        String category = "lactate";
+
+        // call method that returns price history for given filters
+        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId, store, brand, category);
+
+        // verify is result is null
+        assertNotNull(history, "Price history should not be null");
+
+        // verify if result contains at least one record
+        assertFalse(history.isEmpty(), "There should be at least one entry for this product");
+
+        // verify if each result matches the store filter
+        for(PriceHistoryDTO dto : history) {
+            assertEquals(store.toLowerCase(), dto.getStore().toLowerCase(), "Store should match filter");
+        }
+    }
+
+    @Test
+    void testGetPriceHistory_WithoutFilters() {
+        String productId = "P001";
+
+        // call method without filters
+        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId, null, null, null);
+
+        // verify result is not null
+        assertNotNull(history, "Price history should not be null");
+
+        // verify result contains at least one entry
+        assertFalse(history.isEmpty(), "Should return at least one entry for the given product ID");
+
+        // print the result (optional, util dacă vrei să vezi ce returnează)
+        for (PriceHistoryDTO dto : history) {
+            System.out.println(dto);
         }
     }
 
