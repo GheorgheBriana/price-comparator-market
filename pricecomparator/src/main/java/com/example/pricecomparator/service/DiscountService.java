@@ -201,28 +201,35 @@ public class DiscountService {
     
     }
 
-        public List<PriceHistoryDTO> getPriceHistory(String productId) {
-            List<String> allFiles = fileService.getFileNames("csv", "discounts", "");
-            List<PriceHistoryDTO> historyList = new ArrayList<>();
-            for( String file : allFiles) {
-                List<Discount> discounts = loadDiscountFromCsv(file);
+    public List<PriceHistoryDTO> getPriceHistory(String productId, String store, String brand, String category) {
+        List<String> allFiles = fileService.getFileNames("csv", "discounts", "");
+        List<PriceHistoryDTO> historyList = new ArrayList<>();
+        
+        for (String file : allFiles) {
+            List<Discount> discounts = loadDiscountFromCsv(file);
 
-                for(Discount discount : discounts) {
-                    if(discount.getProductId().equals(productId)) {
-                        String fileName = file.substring(file.lastIndexOf("/") + 1);
-                        String store = fileName.substring(0, fileName.indexOf("_"));
-                        String[] parts = fileName.split("_"); // ["lidl", "discounts", "2025-05-01.csv"]
-                        String date = parts[2].replace(".csv", ""); // "2025-05-01"
-                    
-                        PriceHistoryDTO dto = new PriceHistoryDTO(date, store, discount.getPercentageOfDiscount());
+            for (Discount discount : discounts) {
+                if (discount.getProductId().equals(productId)) {
+                    String fileName = file.substring(file.lastIndexOf("/") + 1);
+                    String fileStore = fileName.substring(0, fileName.indexOf("_"));
+                    String[] parts = fileName.split("_");
+                    String date = parts[2].replace(".csv", "");
+
+                    if (
+                        (store == null || discount.getStore().equalsIgnoreCase(store)) &&
+                        (brand == null || discount.getBrand().equalsIgnoreCase(brand)) &&
+                        (category == null || discount.getProductCategory().equalsIgnoreCase(category))
+                    ) {
+                        PriceHistoryDTO dto = new PriceHistoryDTO(date, fileStore, discount.getPercentageOfDiscount());
                         historyList.add(dto);
                     }
                 }
             }
-
-            return historyList;
-
         }
+        
+        return historyList;
+    }
+
 
     private boolean isValidDate(String date) {
         try {
