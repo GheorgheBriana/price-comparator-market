@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.example.pricecomparator.models.Discount;
 import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
+import com.example.pricecomparator.dto.PriceHistoryDTO;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,5 +61,20 @@ public class DiscountsController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+    // GET /discounts/price-history/{productId}
+    @GetMapping("/price-history/{productId}")
+    public ResponseEntity<List<PriceHistoryDTO>> getPriceHistory(
+        @PathVariable String productId
+    ) {
+        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId);
+        
+        if(history.isEmpty()) {
+            return ResponseEntity.noContent().build(); //HTTP 204
+        }
+
+        return ResponseEntity.ok(history); //HTTP 200 + list
+
     }
 }
