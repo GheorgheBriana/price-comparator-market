@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.pricecomparator.service.DiscountService;
@@ -63,12 +64,15 @@ public class DiscountsController {
         }
     }
 
-    // GET /discounts/price-history/{productId}
+    // GET /discounts/price-history/{productId}/?store={store}&brand={brand}&category={category}
     @GetMapping("/price-history/{productId}")
     public ResponseEntity<List<PriceHistoryDTO>> getPriceHistory(
-        @PathVariable String productId
+        @PathVariable String productId,
+        @RequestParam(required = false) String store,
+        @RequestParam(required = false) String brand,
+        @RequestParam(required = false) String category
     ) {
-        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId);
+        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId, store, brand, category);
         
         if(history.isEmpty()) {
             return ResponseEntity.noContent().build(); //HTTP 204
