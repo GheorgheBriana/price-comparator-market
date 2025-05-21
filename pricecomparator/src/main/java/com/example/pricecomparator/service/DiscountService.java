@@ -1,6 +1,7 @@
 package com.example.pricecomparator.service;
 
 import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
+import com.example.pricecomparator.dto.PriceHistoryDTO;
 import com.example.pricecomparator.models.Discount;
 import org.springframework.stereotype.Service;
 
@@ -29,8 +30,8 @@ public class DiscountService {
     private final FileService fileService;
 
     public DiscountService(FileService fileService) {
-    this.fileService = fileService;
-}
+        this.fileService = fileService;
+    }
 
     public List<Discount> loadDiscountFromCsv(String filePath) {
         List<Discount> discounts = new ArrayList<>();
@@ -199,6 +200,29 @@ public class DiscountService {
         return newDiscounts;
     
     }
+
+        public List<PriceHistoryDTO> getPriceHistory(String productId) {
+            List<String> allFiles = fileService.getFileNames("csv", "discounts", "");
+            List<PriceHistoryDTO> historyList = new ArrayList<>();
+            for( String file : allFiles) {
+                List<Discount> discounts = loadDiscountFromCsv(file);
+
+                for(Discount discount : discounts) {
+                    if(discount.getProductId().equals(productId)) {
+                        String fileName = file.substring(file.lastIndexOf("/") + 1);
+                        String store = fileName.substring(0, fileName.indexOf("_"));
+                        String[] parts = fileName.split("_"); // ["lidl", "discounts", "2025-05-01.csv"]
+                        String date = parts[2].replace(".csv", ""); // "2025-05-01"
+                    
+                        PriceHistoryDTO dto = new PriceHistoryDTO(date, store, discount.getPercentageOfDiscount());
+                        historyList.add(dto);
+                    }
+                }
+            }
+
+            return historyList;
+
+        }
 
     private boolean isValidDate(String date) {
         try {
