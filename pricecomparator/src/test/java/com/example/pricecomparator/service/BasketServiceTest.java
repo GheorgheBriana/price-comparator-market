@@ -40,4 +40,36 @@ public class BasketServiceTest {
         assertNotNull(result, "Result should not be null");
         assertTrue(result.isEmpty(), "Result should be empty when no matching products found");
     }
+
+    @Test
+    void testGetOptimisedBasket_withValidItems(){
+        BasketRequestItemDTO item1 = new BasketRequestItemDTO("P001", 2);
+        BasketRequestItemDTO item2 = new BasketRequestItemDTO("P003", 1);
+
+        List<BasketRequestItemDTO> items = List.of(item1, item2);
+
+        List<BasketResponseDTO> result = basketService.getOptimisedBasket(items);
+
+        assertNotNull(result, "Basket result should not be null");
+        assertFalse(result.isEmpty(), "Basket result should not be empty");
+
+        double total = result.stream().mapToDouble(BasketResponseDTO::getTotalPrice).sum();
+        assertTrue(total > 0, ":Total price should be greater than 0");
+    }
+
+    @Test
+    void testGetOptimisedBasket_withInvalidItems(){
+        BasketRequestItemDTO item1 = new BasketRequestItemDTO("INVALID_ITEM1", 2);
+        BasketRequestItemDTO item2 = new BasketRequestItemDTO("INVALID_ITEM2", 1);
+
+        List<BasketRequestItemDTO> items = List.of(item1, item2);
+
+        List<BasketResponseDTO> result = basketService.getOptimisedBasket(items);
+
+        assertNotNull(result, "Basket result should not be null");
+        assertTrue(result.isEmpty(), "Basket result should be empty for unknown product IDs");
+
+        double total = result.stream().mapToDouble(BasketResponseDTO::getTotalPrice).sum();
+        assertFalse(total > 0, ":Total price should 0 for unknown product IDs");
+    }
 }
