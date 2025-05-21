@@ -8,7 +8,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PriceHistoryDTO {
-    String from_date;
-    String store;
-    double percentageOfDiscount;
+    private String productName;
+    private String brand;
+    private String category;
+    private String from_date;
+    private String store;
+    private double percentageOfDiscount;
 }
+

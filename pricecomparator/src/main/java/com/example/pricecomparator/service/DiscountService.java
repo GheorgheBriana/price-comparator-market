@@ -220,7 +220,15 @@ public class DiscountService {
                         (brand == null || discount.getBrand().equalsIgnoreCase(brand)) &&
                         (category == null || discount.getProductCategory().equalsIgnoreCase(category))
                     ) {
-                        PriceHistoryDTO dto = new PriceHistoryDTO(date, fileStore, discount.getPercentageOfDiscount());
+                        PriceHistoryDTO dto = new PriceHistoryDTO(
+                            discount.getProductName(),
+                            discount.getBrand(),
+                            discount.getProductCategory(),
+                            date,
+                            fileStore,
+                            discount.getPercentageOfDiscount()
+                        );
+
                         historyList.add(dto);
                     }
                 }
