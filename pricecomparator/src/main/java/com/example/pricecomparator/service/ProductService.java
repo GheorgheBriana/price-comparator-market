@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
@@ -16,10 +18,9 @@ import com.example.pricecomparator.models.Product;
 @Service
 public class ProductService {
     private static final Logger log = LoggerFactory.getLogger(ProductService.class);
+    private final FileService fileService;
 
-        private final FileService fileService; // 1️⃣ se declară aici
-
-    public ProductService(FileService fileService) { // 2️⃣ se injectează aici
+    public ProductService(FileService fileService) { 
         this.fileService = fileService;
     }
 
@@ -28,7 +29,8 @@ public class ProductService {
 
         // takes files from resources
         InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
-
+        log.info("Attempting to load products from file: {}", filePath);
+   
         // verify if file exists
         if(is == null) {
             log.warn("File not found: {}", filePath);
@@ -46,6 +48,7 @@ public class ProductService {
 
             String line;
             boolean firstLine = true; // ignore csv header
+            int validCount = 0;
             while((line = br.readLine()) != null) { 
                 if(firstLine) {
                     firstLine = false;
@@ -87,12 +90,15 @@ public class ProductService {
 
                     // add object in list
                     products.add(product);
+                    validCount++;
 
                 } catch (NumberFormatException e) {
                     log.warn("Number parsing error in {}: {}", filePath, line);
                 }
 
             }
+
+            log.info("Loaded {} valid products from file: {}", validCount, filePath);
 
         // exceptions
         } catch(IOException e) {
@@ -104,16 +110,36 @@ public class ProductService {
     }
 
     public List<Product> loadAllProductsFromCsvDirectory() {
+        // create a list to hold all loaded products
         List<Product> allProducts = new ArrayList<>();
 
+        // get all CSV file paths from the resources/csv directory
         List<String> csvFiles = fileService.getFileNames("csv", "", "");
+        log.info("Found {} CSV files to process", csvFiles.size());
 
         for (String filePath : csvFiles) {
+            log.info("Processing file: {}", filePath);
+            // add all products from the current file to the final list
             allProducts.addAll(loadProductsFromCsv(filePath));
         }
 
+        log.info("Total products loaded from all CSV files: {}", allProducts.size());
+
+        // return the completele list of products loaded from all CSV files
         return allProducts;
     }
 
+    public List<Product> getBestValueProductsByCategory(String category, int topN) {
+        log.info("Finding top {} best value products in category '{}'", topN, category);
+
+        List<Product> allProducts = loadAllProductsFromCsvDirectory();
+
+        return allProducts.stream()
+                .filter(p -> p.getProductCategory().equalsIgnoreCase(category)) // filter only by selected category
+                .sorted((p1, p2) -> Double.compare(p1.getPricePerBaseUnit(), p2.getPricePerBaseUnit())) // sort by price per base unit
+                .limit(topN) // limit the number of returned products
+                .peek(p -> log.debug("Included product: {} with price/unit = {}", p.getProductName(), p.getPricePerBaseUnit())) // log selected products
+                .collect(Collectors.toList()); // collect the filtered and sorted products into a list
+    }
 
 }
