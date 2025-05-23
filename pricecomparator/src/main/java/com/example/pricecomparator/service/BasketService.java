@@ -24,13 +24,14 @@ public class BasketService {
 
     private static final Logger log = LoggerFactory.getLogger(BasketService.class);
 
-    // For each product in the user's basket, this method finds the store where it' cheapest, including active discounts.
-    // The products are grouped by store to know what to buy from where.
+    // constructor
     public BasketService(ProductService productService, DiscountService discountService) {
         this.productService = productService;
         this.discountService = discountService;
     }
-    // 
+
+    // For each product in the user's basket, this method finds the store where it' cheapest, including active discounts.
+    // The products are grouped by store to know what to buy from where.
     public Map<String, List<Product>> optimiseBasket(List<BasketRequestItemDTO> basketItems) {
         List<Product> allProducts = productService.loadAllProductsFromCsvDirectory();
         Map<String, List<Product>> groupedByStore = new HashMap<>();
@@ -88,7 +89,7 @@ public class BasketService {
 
             log.debug("Creating basket for store '{}'. {} total items", store, products.size());
 
-            // count how many times each product appears in that store's product list
+        // temporary map to aggregate quantities and calculate total per product in the current store
             Map<String, BasketProductDTO> productMap = new HashMap<>();
 
             // for every product id => calculate the discounted price if it exists

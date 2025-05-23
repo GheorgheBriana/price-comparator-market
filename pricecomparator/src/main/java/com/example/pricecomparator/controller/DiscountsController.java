@@ -64,7 +64,7 @@ public class DiscountsController {
         }
     }
 
-    // GET /discounts/price-history/{productId}/?store={store}&brand={brand}&category={category}
+    // GET /discounts/price-history/{productId}?store={store}&brand={brand}&category={category}
     @GetMapping("/price-history/{productId}")
     public ResponseEntity<List<PriceHistoryDTO>> getPriceHistory(
         @PathVariable String productId,
