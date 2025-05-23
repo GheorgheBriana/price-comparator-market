@@ -1,3 +1,5 @@
+// DTO used to receive input from the client for basket optimisation
+
 package com.example.pricecomparator.dto;
 
 import lombok.AllArgsConstructor;
