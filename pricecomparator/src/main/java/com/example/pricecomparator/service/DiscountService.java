@@ -3,6 +3,8 @@ package com.example.pricecomparator.service;
 import com.example.pricecomparator.dto.DiscountBestGlobalDTO;
 import com.example.pricecomparator.dto.PriceHistoryDTO;
 import com.example.pricecomparator.models.Discount;
+import com.example.pricecomparator.models.Product;
+
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -36,10 +38,10 @@ public class DiscountService {
     public List<Discount> loadDiscountFromCsv(String filePath) {
         List<Discount> discounts = new ArrayList<>();
 
-        // takes file from resources
+        // loads file from resources
         InputStream is = getClass().getClassLoader().getResourceAsStream(filePath);
 
-        // verify if file exists
+        // check if the file exists
         if(is == null) {
             log.warn("File not found: {}", filePath);
             return discounts;
@@ -48,10 +50,10 @@ public class DiscountService {
         // open file and read line by line
         try(BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
         
-            // extract name file
+            // extract the name file
             String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
 
-            //extract name of the store from file
+            //extract the store name from the file name
             String storeName = fileName.contains("_") ? fileName.substring(0, fileName.indexOf("_")).toLowerCase():"unknown";
 
             String line;
@@ -75,7 +77,7 @@ public class DiscountService {
 
                 try {
                     
-                    // converting and validations
+                    // parse and validate discount fields
                     double packageQuantity = Double.parseDouble(fields[3].trim());
                     double percentageOfDiscount = Double.parseDouble(fields[8].trim());
                     Date fromDate = formatter.parse(fields[6].trim());
@@ -101,7 +103,7 @@ public class DiscountService {
                             storeName                           // store
                     );
 
-                    // add object in list
+                    // add the discount object in the result list
                      discounts.add(discount);
 
                 } catch (ParseException | NumberFormatException e) {
@@ -238,6 +240,43 @@ public class DiscountService {
         return historyList;
     }
 
+    public double getDiscountedPrice(Product product) {
+        List<String> discountFiles = fileService.getFileNames("csv", "discounts", "");
+        
+        // current date used to check if the discount is active
+        Date now = new Date();
+
+        // loop through each discount file and load its Discount list
+        for(String file : discountFiles) {
+            List<Discount> discounts = loadDiscountFromCsv(file);
+
+            // check each discount to find a valid match
+            for(Discount discount : discounts ) {
+                if(
+                    // match by product id
+                    discount.getProductId().equalsIgnoreCase(product.getProductId()) &&
+                    // match by store
+                    discount.getStore().equalsIgnoreCase(product.getStore()) &&
+                    // check if the current date is within the discount period
+                    now.after(discount.getFromDate()) &&
+                    now.before(discount.getToDate())
+                ) {
+                    // calculate the discount price
+                    double reduced = product.getPrice() * (1 - discount.getPercentageOfDiscount() / 100.0);
+
+                    log.debug("Applying discount {}% for product {} from store {}. The new price is {}",
+                        discount.getPercentageOfDiscount(), discount.getProductName(), discount.getStore(), reduced);
+                    
+                    // return the discounted price after finding a valid match
+                    return reduced;
+                }
+            }
+        }
+
+        // no valid discount found, return original price
+        return product.getPrice();
+    
+    }
 
     private boolean isValidDate(String date) {
         try {
