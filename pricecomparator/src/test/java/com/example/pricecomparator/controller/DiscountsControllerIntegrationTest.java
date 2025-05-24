@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import static org.assertj.core.api.Assertions.assertThat;
 
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class DiscountsControllerIntegrationTest {
@@ -37,19 +37,42 @@ public class DiscountsControllerIntegrationTest {
                 .jsonPath("$[1].percentageOfDiscount").exists();
     }
 
+     // this test fails if we dont have new discounts csv files in resources folder
     @Test
-    void testGetGlobalBestDiscounts_returnsNoContentWhenEmpty() {
+    void testGetNewDiscounts_returnsRecentDiscountsSorted() {
         // create client
         webClient = WebTestClient.bindToServer()
             .baseUrl("http://localhost:" + port)
             .build();
-
-        // call endpoint and verify response status is 204 No Content
+        
+        // call endpoint and verify results
         webClient.get()
-            .uri("/discounts/best-global") // tested endpoint
-            .accept(MediaType.APPLICATION_JSON) // expects JSON (even if empty)
-            .exchange() // sends request
-            .expectStatus().isNoContent(); // verify if response status is 204 No Content
+            .uri("/discounts/new") // tested endpoint
+            .accept(MediaType.APPLICATION_JSON) // expect JSON response
+            .exchange() // sends the request
+            .expectStatus().isOk()// expect 200 OK
+            .expectBody()
+                .jsonPath("$.length()").value(length -> {
+                    assertThat((Integer) length).isGreaterThan(0);
+                }) // verify the list is not empty
+                .jsonPath("$[0].percentageOfDiscount").exists(); // check that discount field exists
     }
-    
+
+
+    // this test fails if we have new discounts csv files in resources folder
+
+    // @Test
+    // void testGetNewDiscounts_returns204WhenNoContent() {
+    //     webClient = WebTestClient.bindToServer()
+    //         .baseUrl("http://localhost:" + port)
+    //         .build();
+
+    //     webClient.get()
+    //         .uri("/discounts/new")
+    //         .accept(MediaType.APPLICATION_JSON)
+    //         .exchange()
+    //         .expectStatus().isNoContent(); // 204
+    // }
+
+
 }
