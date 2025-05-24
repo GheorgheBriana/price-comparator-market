@@ -36,8 +36,11 @@ public class DiscountService {
     public DiscountService(FileService fileService) {
         this.fileService = fileService;
     }
-
+    // Loads discounts from a CSV file, parsing each line into Discount objects,
+    // skipping header, malformed lines, and invalid data, then returns the list.
     public List<Discount> loadDiscountFromCsv(String filePath) {
+        log.info("Loading discounts from CSV file: {}", filePath);
+
         List<Discount> discounts = new ArrayList<>();
 
         // loads file from resources
@@ -52,7 +55,7 @@ public class DiscountService {
         // open file and read line by line
         try(BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
         
-            // extract the name file
+            // extract only the filename (after last '/')
             String fileName = filePath.substring(filePath.lastIndexOf("/") + 1);
 
             //extract the store name from the file name
@@ -78,7 +81,6 @@ public class DiscountService {
                 }
 
                 try {
-                    
                     // parse and validate discount fields
                     double packageQuantity = Double.parseDouble(fields[3].trim());
                     double percentageOfDiscount = Double.parseDouble(fields[8].trim());
@@ -91,7 +93,7 @@ public class DiscountService {
                         continue;
                     }
 
-                    // create Discount object
+                    // create Discount DTO
                     Discount discount = new Discount(
                            fields[0].trim(),                   // productId
                             fields[1].trim(),                   // productName
@@ -119,8 +121,10 @@ public class DiscountService {
         return discounts;
     }
     
-
+    // Returns the list of discounts for a given store and date, sorted by highest discount first
     public List<Discount> getBestDiscounts(String directoryPath, String store, String date) {
+        log.info("Getting best discounts for store={} on date={} in directory={}",
+            store, date, directoryPath);
 
         // exception if store name is not valid
         if(store == null || store.isBlank()) {
@@ -130,18 +134,24 @@ public class DiscountService {
         if(!isValidDate(date)) {
             throw new IllegalArgumentException("Invalid date. Use the YYYY-MM-DD format");
         }
-        // search files
+        // build file name pattern for this store’s discounts
         String pattern = store + "_discounts";
+        // find all matching files in the directory for the given date
         List<String> files = fileService.getFileNames(directoryPath, pattern, date);
+        
         if(files.isEmpty()) {
             throw new IllegalStateException("No discounts found for store/date");
         }
-        // load and sort discounts
+
+        // load and sort discounts into a single list
         List<Discount> discounts = new ArrayList<>();
         for(String file : files) {
+            // add all discounts parsed from CSV file
             discounts.addAll(loadDiscountFromCsv(file));
         }
+        // sort the combined list by discount percentage, highest first
         discounts.sort(Comparator.comparingDouble(Discount::getPercentageOfDiscount).reversed());
+        
         return discounts;        
     }
 
@@ -242,10 +252,13 @@ public class DiscountService {
         return result;
     }
 
-    // Extracts the date from filename pattern: something_discounts_YYYY-MM-DD.csv
+    // Extracts the date from filename pattern: store_discounts_YYYY-MM-DD.csv
     private LocalDate extractFileDate(String filename) {
+        log.trace("Extracting date from filename: {}", filename);
+        
         try {
             String datePart = filename.replaceAll(".*_(\\d{4}-\\d{2}-\\d{2})\\.csv", "$1");
+            // parse the extracted segment into a LocalDate
             return LocalDate.parse(datePart);
         } catch (Exception e) {
             log.warn("Could not extract date from filename: {}", filename);
@@ -253,44 +266,63 @@ public class DiscountService {
         }
     }
 
+    // Retrieves the price history for a specific product, filtered by optional store, brand, and category
     public List<PriceHistoryDTO> getPriceHistory(String productId, String store, String brand, String category) {
+        log.info("Fetching price history for productId={}, store={}, brand={}, category={}",
+                 productId, store, brand, category);
+        
+        // find all discount files in the 'csv' directory containing 'discounts'
         List<String> allFiles = fileService.getFileNames("csv", "discounts", "");
+        
         List<PriceHistoryDTO> historyList = new ArrayList<>();
         
+        // loop through all files to load discounts
         for (String file : allFiles) {
             List<Discount> discounts = loadDiscountFromCsv(file);
 
             for (Discount discount : discounts) {
-                if (discount.getProductId().equals(productId)) {
-                    String fileName = file.substring(file.lastIndexOf("/") + 1);
-                    String fileStore = fileName.substring(0, fileName.indexOf("_"));
-                    String[] parts = fileName.split("_");
-                    String date = parts[2].replace(".csv", "");
+                if (!discount.getProductId().equals(productId)) {
+                    continue;
+                }
+                // extract filename, store name, and date parts
+                String fileName = file.substring(file.lastIndexOf("/") + 1);
+                String fileStore = fileName.substring(0, fileName.indexOf("_"));
+                String[] parts = fileName.split("_");
+                String date = parts[2].replace(".csv", "");
 
-                    if (
-                        (store == null || discount.getStore().equalsIgnoreCase(store)) &&
-                        (brand == null || discount.getBrand().equalsIgnoreCase(brand)) &&
-                        (category == null || discount.getProductCategory().equalsIgnoreCase(category))
-                    ) {
-                        PriceHistoryDTO dto = new PriceHistoryDTO(
-                            discount.getProductName(),
-                            discount.getBrand(),
-                            discount.getProductCategory(),
-                            date,
-                            fileStore,
-                            discount.getPercentageOfDiscount()
-                        );
+                // apply optional filters: store, brand, category
+                if (
+                    (store == null || discount.getStore().equalsIgnoreCase(store)) &&
+                    (brand == null || discount.getBrand().equalsIgnoreCase(brand)) &&
+                    (category == null || discount.getProductCategory().equalsIgnoreCase(category))
+                ) {
+                    log.debug("Adding history entry from {} on {}: {}% off",
+                            fileStore, date, discount.getPercentageOfDiscount());
+                    
+                    // build DTO and add to result list
+                     PriceHistoryDTO dto = new PriceHistoryDTO(
+                        discount.getProductName(),              // productName
+                        discount.getBrand(),                    // brand
+                        discount.getProductCategory(),          // category
+                        date,                                   // date string from filename
+                        fileStore,                              // store name from filename
+                        discount.getPercentageOfDiscount()      // discount percentage
+                    );
 
-                        historyList.add(dto);
-                    }
+                    historyList.add(dto);
                 }
             }
         }
-        
+
+        log.info("Total history entries returned: {}", historyList.size());
         return historyList;
     }
-
+    // Calculates the price after applying the first active discount found for the given product
     public double getDiscountedPrice(Product product) {
+        log.info("Calculating discounted price for product {} at store {} (base price={})",
+                 product.getProductId(), product.getStore(), product.getPrice());
+        
+        // find all discount files in the CSV directory
         List<String> discountFiles = fileService.getFileNames("csv", "discounts", "");
         
         // current date used to check if the discount is active
@@ -302,6 +334,7 @@ public class DiscountService {
 
             // check each discount to find a valid match
             for(Discount discount : discounts ) {
+                // if this discount applies to the product and is active right now
                 if(
                     // match by product id
                     discount.getProductId().equalsIgnoreCase(product.getProductId()) &&
@@ -324,10 +357,14 @@ public class DiscountService {
         }
 
         // no valid discount found, return original price
+        log.info("No active discount found for product {} at store {}; returning original price {}",
+                product.getProductId(), product.getStore(), product.getPrice());
         return product.getPrice();
     
     }
 
+    // Method used in getBestDiscounts
+    // Returns true if the string is a valid date in YYYY-MM-DD format
     private boolean isValidDate(String date) {
         try {
             LocalDate.parse(date);
