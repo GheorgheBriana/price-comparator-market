@@ -22,7 +22,7 @@ import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 
 import org.slf4j.LoggerFactory;
@@ -205,33 +205,52 @@ public class DiscountService {
             .collect(Collectors.toList());
     }
 
+    // Returns the list of discounts coming from files added in the last 24 hours.
+    // Result is sorted by discount percentage in descending order.
     public List<Discount> getNewDiscounts(String directoryPath) {
-    List<String> allFiles = fileService.getFileNames(directoryPath, "discounts", "");
-    List<Discount> allDiscounts = new ArrayList<>();
+        log.info("Searching for new discounts (files uploaded in the last 24 hours) from directory: {}", directoryPath);
 
-    for (String file : allFiles) {
-        allDiscounts.addAll(loadDiscountFromCsv(file));
-    }
+        // Retrieve all filenames containing "discounts"
+        List<String> allFiles = fileService.getFileNames(directoryPath, "discounts", "");
+
+        // Current time and threshold for 24 hours ago
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threshold = now.minusHours(24);
+
         List<Discount> newDiscounts = new ArrayList<>();
 
-        LocalDate currentDate = LocalDate.now();
-        LocalDate yesterday = currentDate.minusDays(1);
+        for (String file : allFiles) {
+            // Extract the file date from the name (e.g., 2025-05-24)
+            LocalDate fileDate = extractFileDate(file);
 
-        ZoneId zoneId = ZoneId.systemDefault();
-        for (Discount discount : allDiscounts) {
-            if (discount.getFromDate() != null) {
-                LocalDate fromDate = discount.getFromDate()
-                                            .toInstant()
-                                            .atZone(zoneId)
-                                            .toLocalDate();
-
-                if (!fromDate.isBefore(yesterday)) {
-                    newDiscounts.add(discount);
-                }
+            // If the file is recent (uploaded in last 24h), process it
+            if (fileDate != null && fileDate.atStartOfDay().isAfter(threshold)) {
+                log.debug("File {} is within the 24h threshold. Loading discounts...", file);
+                newDiscounts.addAll(loadDiscountFromCsv(file));
+            } else {
+                log.debug("Skipping file {} - too old or invalid date", file);
             }
         }
-        return newDiscounts;
-    
+
+        // Sort and return only meaningful discounts (positive %), in descending order
+        List<Discount> result = newDiscounts.stream()
+            .filter(d -> d.getPercentageOfDiscount() > 0)
+            .sorted(Comparator.comparingDouble(Discount::getPercentageOfDiscount).reversed())
+            .collect(Collectors.toList());
+
+        log.info("Finished processing new discounts. Found {} recent discount entries.", result.size());
+        return result;
+    }
+
+    // Extracts the date from filename pattern: something_discounts_YYYY-MM-DD.csv
+    private LocalDate extractFileDate(String filename) {
+        try {
+            String datePart = filename.replaceAll(".*_(\\d{4}-\\d{2}-\\d{2})\\.csv", "$1");
+            return LocalDate.parse(datePart);
+        } catch (Exception e) {
+            log.warn("Could not extract date from filename: {}", filename);
+            return null;
+        }
     }
 
     public List<PriceHistoryDTO> getPriceHistory(String productId, String store, String brand, String category) {
@@ -319,5 +338,4 @@ public class DiscountService {
     }
  
 }
-
 
