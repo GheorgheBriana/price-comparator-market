@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Date;
-
+import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -116,6 +118,7 @@ public class DiscountService {
         }
         return discounts;
     }
+    
 
     public List<Discount> getBestDiscounts(String directoryPath, String store, String date) {
 
@@ -142,18 +145,37 @@ public class DiscountService {
         return discounts;        
     }
 
+    // Returns the list of top global discounts, filtered to only include active ones (based on current date),
+    // deduplicated by productId (keeping the highest percentage), and sorted in descending order by discount percentage.
     public List<DiscountBestGlobalDTO> getGlobalTopDiscounts(String directoryPath) {
+        log.info("Loading global discounts from directory: {}", directoryPath);
+
         // search all files that have the word "discounts" in name
         List<String> allFiles = fileService.getFileNames(directoryPath, "discounts", "");
-        if(allFiles.isEmpty()) {
+        if (allFiles.isEmpty()) {
+            log.warn("No discount files found in directory: {}", directoryPath);
             throw new IllegalStateException("No discount files found");
         }
+
+        // get today's date for filtering active discounts
+        Date today = new Date();
+
+        // map to keep only the best discount per productId
+        Map<String, DiscountBestGlobalDTO> bestDiscountsMap = new HashMap<>();
+
         // load all discounts from all files
-        List<DiscountBestGlobalDTO> allDiscounts = new ArrayList<>();
-        for (String file : allFiles) { 
+        for (String file : allFiles) {
             List<Discount> discounts = loadDiscountFromCsv(file);
+
             for (Discount d : discounts) {
-                allDiscounts.add(new DiscountBestGlobalDTO(
+                // skip if discount is not currently active
+                if (today.before(d.getFromDate()) || today.after(d.getToDate())) {
+                    log.debug("Skipping inactive discount for product {} ({} - {})", d.getProductId(), d.getFromDate(), d.getToDate());
+                    continue;
+                }
+
+                // build DTO
+                DiscountBestGlobalDTO dto = new DiscountBestGlobalDTO(
                     d.getProductId(),
                     d.getProductName(),
                     d.getBrand(),
@@ -165,13 +187,22 @@ public class DiscountService {
                     d.getPercentageOfDiscount(),
                     d.getStore(),
                     file
-                ));
+                );
+
+                // only update if this is the better discount for the same product
+                DiscountBestGlobalDTO existing = bestDiscountsMap.get(d.getProductId());
+                if (existing == null || dto.getPercentageOfDiscount() > existing.getPercentageOfDiscount()) {
+                    bestDiscountsMap.put(d.getProductId(), dto);
+                }
             }
         }
 
-        // sort discounts by percentage in descending order
-        allDiscounts.sort(Comparator.comparingDouble(DiscountBestGlobalDTO::getPercentageOfDiscount).reversed());
-        return allDiscounts;
+        log.info("Finished processing discounts. Unique active products: {}", bestDiscountsMap.size());
+
+        // convert to list and sort descending by discount
+        return bestDiscountsMap.values().stream()
+            .sorted(Comparator.comparingDouble(DiscountBestGlobalDTO::getPercentageOfDiscount).reversed())
+            .collect(Collectors.toList());
     }
 
     public List<Discount> getNewDiscounts(String directoryPath) {
