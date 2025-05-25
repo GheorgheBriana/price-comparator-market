@@ -3,7 +3,6 @@
 <img src="https://github.com/user-attachments/assets/79c8a0ff-b750-4e93-adea-c218fa2d3e03" alt="Banner" width="100%" />
 
 <!-- TABLE OF CONTENTS -->
-<!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
@@ -132,7 +131,6 @@ The main class annotated with `@SpringBootApplication` that starts the Spring Bo
 This structure follows standard Spring Boot conventions and all data is sourced from included CSV files without a database or external services.
 
 ---
----
 
 ## II. How to Run the Application Locally
 
@@ -189,6 +187,10 @@ The application offers a variety of functionalities for comparing prices and man
   Users can set a price threshold for a product (optionally limited to a specific store). The application stores these alerts temporarily and offers a checking mechanism that generates notifications when prices fall below the set threshold.
 
 All these features are available via REST API endpoints returning JSON, accessible through HTTP clients like browsers, Postman, or a separate frontend integration.
+
+---
+
+## IV. Project Structure
 
 ## 1. Products
 
