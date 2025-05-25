@@ -1,3 +1,7 @@
+![Java](https://img.shields.io/badge/java-21-blue)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 # 🛒 Price Comparator - Market
 
 <img src="https://github.com/user-attachments/assets/79c8a0ff-b750-4e93-adea-c218fa2d3e03" alt="Banner" width="100%" />
@@ -155,7 +159,16 @@ Make sure you have the following installed:
   The application starts by default on port 8080. You can access the API endpoints via a browser or a tool like Postman.
    ```bash
    GET http://localhost:8080/products/lidl/2025-05-08
-CSV Files
+
+## Running the Tests
+
+To run all unit and integration tests:
+
+```bash
+./mvnw test
+```
+
+### CSV Files
 All required data is included in the project under src/main/resources/csv.
 - Product and discount data are stored as CSV files and loaded automatically at runtime from the classpath.
 -  No additional manual configuration or file movement is needed.
@@ -388,7 +401,7 @@ During the development of this project, several assumptions and simplifications 
   Price alerts created via `/alerts` are stored only in application memory (an in-memory static list). Alerts are not persisted to a database or file, so they are lost if the server restarts.
 
 - **Manual alert checking:**  
-  There is no automated process (cron job, real-time notifications) to alert users when a price alert condition is met. Users must explicitly call `/alerts/check` to verify if any alerts are triggered. This simplified model could be enhanced with schedulers, WebSocket, or email notifications in a production system.
+  There is no automated process to alert users when a price alert condition is met. Users must explicitly call `/alerts/check` to verify if any alerts are triggered. This simplified model could be enhanced with schedulers, WebSocket, or email notifications in a production system.
 
 - **Data and logic specific to demo context:**  
   The CSV file structure and application logic reflect specific requirements. For example, CSV files expect semicolon delimiters and exact column order. Discounts are considered “new” if their start date is today or very recent, and “active” if the current date falls within the promotion interval. Complex scenarios like overlapping promotions or new products without history are not fully handled.
@@ -403,5 +416,3 @@ During the development of this project, several assumptions and simplifications 
   The project only provides a backend REST API. Interactions occur solely via HTTP requests and JSON responses. No frontend or web pages are included. A UI would be developed separately or accessed via third-party tools (e.g., Postman).
 
 ---
-
-These clarifications highlight that certain aspects were simplified for demonstration purposes. Extending the project for production would require adding security, persistent storage, advanced validation, and possibly UI components. Nonetheless, the implemented features provide a solid foundation for price comparison and discount management as initially required.
