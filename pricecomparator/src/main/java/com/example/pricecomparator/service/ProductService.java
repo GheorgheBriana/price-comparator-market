@@ -202,7 +202,8 @@ public class ProductService {
                 double savingPercent = 100.0 * (originalVPU - discountedVPU) / originalVPU;
                 String note = savingPercent > 0
                     ? String.format("Save %.2f%% (%.2f RON/%s vs %.2f)", savingPercent, discountedVPU, p.getPackageUnit(), originalVPU)
-                    : " ";
+                    : "No savings";
+
                 // build DTO
                 return new ProductWithValueDTO(
                     p.getProductName(),
