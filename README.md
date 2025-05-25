@@ -42,7 +42,7 @@ It reads product prices and discounts from CSVs and gives access to them through
 
 ---
 
-## ✅ Features
+## Features
 ---
 
 ## I. Project Structure
@@ -119,7 +119,7 @@ This structure follows standard Spring Boot conventions and all data is sourced 
 
 Make sure you have the following installed:
 
-- [Java 17+](https://adoptium.net/en-GB/temurin/releases/)
+- [Java 17+]([https://adoptium.net/en-GB/temurin/releases/](https://www.oracle.com/ro/java/technologies/downloads/))
 - [Maven 3.8+](https://maven.apache.org/download.cgi)
 - [Git](https://git-scm.com/downloads)
 - One of the following IDEs:
@@ -171,3 +171,178 @@ The application offers a variety of functionalities for comparing prices and man
   Users can set a price threshold for a product (optionally limited to a specific store). The application stores these alerts temporarily and offers a checking mechanism that generates notifications when prices fall below the set threshold.
 
 All these features are available via REST API endpoints returning JSON, accessible through HTTP clients like browsers, Postman, or a separate frontend integration.
+
+## 1. Products
+
+### - `GET /products/{store}/{date}`  
+Returns the full list of products available in the specified store on the given date.  
+
+- `{store}`: the store name (e.g., `lidl`, `kaufland`, `profi`)  
+- `{date}`: date in `YYYY-MM-DD` format  
+
+**Example:**  
+`GET /products/lidl/2025-05-08`
+
+![image](https://github.com/user-attachments/assets/8e9e25e9-621b-4ed9-bccb-00c049c4a73a)
+
+
+---
+
+### - `GET /products/best-value`  
+Provides recommendations for products with the lowest price per unit of measure within a specified category.  
+
+**Query parameters:**  
+- `category` (required): product category, e.g., `lactate`, `bauturi`, `fructe`  
+- `top` (optional): number of products to return, default is 5  
+
+Response contains a list of the most cost-effective products sorted ascending by price per unit, plus a recommendation message highlighting the best option.  
+
+**Example:**  
+`GET /products/best-value?category=lactate&top=5`
+
+![image](https://github.com/user-attachments/assets/b18400fa-9b48-4cac-8b51-c518eb99a27c)
+
+
+---
+
+## 2. Price Comparison
+
+### - `GET /compare/{store1}/{date1}/{store2}/{date2}`  
+Compares prices of products common to two stores on the specified dates.  
+
+**Parameters:**  
+- `{store1}`, `{store2}`: store names  
+- `{date1}`, `{date2}`: dates in `YYYY-MM-DD` format  
+
+The endpoint returns a list of entries containing: product ID, name, price in each store, and which store offers the cheaper price (or "equal" if prices match).  
+
+**Example:**  
+`GET /compare/lidl/2025-05-01/kaufland/2025-05-01`
+
+![image](https://github.com/user-attachments/assets/ea3bad5b-d48f-489f-a7dc-b0d4c7d36f16)
+
+
+---
+
+## 3. Optimized Shopping Basket
+
+### - `POST /basket/optimise`  
+Calculates the optimal way to purchase a list of products from multiple stores minimizing total cost.  
+
+**Request body must contain a JSON array** of desired products with fields `productId` and `quantity`.  
+
+The application considers base prices and any active discounts to decide which store to buy each product from.  
+
+**Response is a JSON object containing:**  
+- A recommendation message (e.g., "Basket optimized across X stores, see details below.")  
+- A list of baskets—one per store—in which each basket includes the store name, list of products allocated there (with `productId`, name, discounted unit price, quantity, and total for that product), and the total price for that store.
+
+**Example request body  
+
+[
+  {"productId": "P001", "quantity": 2},
+  {"productId": "P005", "quantity": 1}
+]
+
+![image](https://github.com/user-attachments/assets/bcab2d7b-ee84-4749-817d-174745f58558)
+
+
+## 4. Discounts and Promotions
+
+### - `GET /discounts/{store}/{date}`  
+Returns the list of discounts available in the specified store on the given date.  
+
+**Parameters:**  
+- `{store}`: the store name  
+- `{date}`: date in `YYYY-MM-DD` format  
+
+Returns a list of Discount objects with details: product ID, name, brand, quantity & unit, category, promotion period (fromDate – toDate), discount percentage, and store.  
+
+**Example:**  
+`GET /discounts/profi/2025-05-08`
+
+![image](https://github.com/user-attachments/assets/c89386d3-3c3f-435d-b67a-a4e688584fb2)
+
+---
+
+### - `GET /discounts/best-global`  
+Provides the largest active discounts across all stores for the current date.  
+
+For each discounted product, only the discount with the highest percentage and its store is returned, ordered descending by discount percentage.
+
+![image](https://github.com/user-attachments/assets/c58c6dfd-ee16-4c78-989c-5310dd8cf13a)
+
+---
+
+### - `GET /discounts/new`  
+Lists recently added discounts that started today or very recently (e.g., yesterday).  
+
+Returns a list of new Discount objects or HTTP 204 No Content if none found.
+
+![image](https://github.com/user-attachments/assets/ca8e45fb-d515-4a84-9715-fe9af787d4ad)
+
+---
+
+### `GET /discounts/price-history`  
+Returns the discount and price history for one or more products.
+
+**Optional query parameters:**
+
+| Parameter     | Required | Description                                      |
+|---------------|----------|--------------------------------------------------|
+| `productId`   | ✖        | ID of the product to filter                     |
+| `store`       | ✖        | Store name (`lidl`, `kaufland`, `profi`, etc.)  |
+| `brand`       | ✖        | Product brand                                   |
+| `category`    | ✖        | Product category                                |
+| `from`        | ✖        | Start date (inclusive), format `YYYY-MM-DD`     |
+| `to`          | ✖        | End date (inclusive), format `YYYY-MM-DD`       |
+
+
+Returns a list of PriceHistoryDTO objects containing product name, brand, category, store, discount start date, and discount percentage.  
+
+**Example:** 
+
+*History for a single product:*
+`GET /discounts/price-history?productId=P002`
+
+![image](https://github.com/user-attachments/assets/a1eede1c-b0a1-49ee-93f6-0738488b1c50)
+
+---
+
+## 5. Price Alerts
+
+### `POST /alerts`  
+Creates a new price alert stored temporarily in memory.
+
+**Request body parameters:**
+
+| Field         | Required | Description                                                                 |
+|---------------|----------|-----------------------------------------------------------------------------|
+| `productId`   | ✔        | The ID of the product to monitor                                            |
+| `targetPrice` | ✔        | The price threshold (when the product reaches or falls below this price)   |
+| `store`       | ✖        | Optional store name (if omitted, alert applies to all stores)              |
+
+**Example:**
+`{
+  "productId": "P005",
+  "targetPrice": 14.0,
+  "store": "Lidl"
+}`
+
+![image](https://github.com/user-attachments/assets/94f9bf8a-13d7-4d14-a9ce-077b62b3736d)
+
+### `GET /alerts`  
+Returns a list of all active price alerts currently stored in memory.
+
+![image](https://github.com/user-attachments/assets/8405c9f3-0719-46c2-8143-bbf3a4c0c005)
+
+## `GET /alerts/check`
+Manually checks all registered alerts against the current product prices.
+Returns a list of messages for alerts that have been triggered.
+
+If no alerts are triggered, the response will be an empty list or HTTP 204 No Content.
+
+![image](https://github.com/user-attachments/assets/59279a2a-7221-449e-8ee7-b615943c8e02)
+
+
+
