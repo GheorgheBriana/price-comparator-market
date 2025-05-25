@@ -1,3 +1,5 @@
+// DTO used for comparing a single product between two stores
+// includes prices and indicates which store is cheaper
 package com.example.pricecomparator.dto;
 
 import lombok.AllArgsConstructor;

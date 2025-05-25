@@ -15,5 +15,5 @@ public class BasketProductDTO {
     private String productName;
     private double unitPrice;
     private int quantity;
-    private double totalPrice;
+    private double totalPrice; // quantity * unitPrice
 }

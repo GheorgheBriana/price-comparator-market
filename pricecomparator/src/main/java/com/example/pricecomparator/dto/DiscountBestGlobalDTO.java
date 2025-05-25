@@ -1,4 +1,5 @@
-// DiscountWithSourceDTO.java
+// DTO used to represent the best active discount for a product
+
 package com.example.pricecomparator.dto;
 
 import lombok.AllArgsConstructor;

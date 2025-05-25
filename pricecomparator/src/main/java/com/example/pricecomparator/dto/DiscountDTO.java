@@ -1,3 +1,4 @@
+// DTO representing a discount available for a product
 package com.example.pricecomparator.dto;
 
 import lombok.AllArgsConstructor;
