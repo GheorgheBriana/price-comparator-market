@@ -17,8 +17,8 @@ import static org.mockito.Mockito.when;
 public class BasketServiceTest {
 
     private final FileService fileService = new FileService();
-    private final ProductService productService = new ProductService(fileService);
     private final DiscountService discountService = Mockito.mock(DiscountService.class); 
+    private final ProductService productService = new ProductService(fileService, discountService);
     private final BasketService basketService = new BasketService(productService, discountService);
 
     // Test a valid basket with products from two different stores.
