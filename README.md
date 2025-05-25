@@ -146,7 +146,6 @@ All required data is included in the project under src/main/resources/csv.
 - To add products or discounts for a new date, simply add the corresponding CSV file in the format: store_YYYY-MM-DD.csv (for products), store_discounts_YYYY-MM-DD.csv (for discounts) into the csv folder.
 
 ---
----
 
 ## III. Main Features
 
@@ -174,89 +173,102 @@ All these features are available via REST API endpoints returning JSON, accessib
 
 ## 1. Products
 
-### - `GET /products/{store}/{date}`  
-Returns the full list of products available in the specified store on the given date.  
+### `GET /products/{store}/{date}`  
+Returns the full list of products available in the specified store on the given date.
 
-- `{store}`: the store name (e.g., `lidl`, `kaufland`, `profi`)  
-- `{date}`: date in `YYYY-MM-DD` format  
+**Path parameters:**
+
+| Parameter | Required | Description                             | Example        |
+|-----------|----------|-----------------------------------------|----------------|
+| `store`   | ✔        | Store name (`lidl`, `kaufland`, etc.)   | `lidl`         |
+| `date`    | ✔        | Date in `YYYY-MM-DD` format             | `2025-05-08`   |
 
 **Example:**  
 `GET /products/lidl/2025-05-08`
 
 ![image](https://github.com/user-attachments/assets/8e9e25e9-621b-4ed9-bccb-00c049c4a73a)
 
-
 ---
 
-### - `GET /products/best-value`  
-Provides recommendations for products with the lowest price per unit of measure within a specified category.  
+### `GET /products/best-value`  
+Provides recommendations for products with the lowest price per unit.
 
-**Query parameters:**  
-- `category` (required): product category, e.g., `lactate`, `bauturi`, `fructe`  
-- `top` (optional): number of products to return, default is 5  
+**Query parameters:**
 
-Response contains a list of the most cost-effective products sorted ascending by price per unit, plus a recommendation message highlighting the best option.  
+| Parameter  | Required | Description                                  | Example                |
+|------------|----------|----------------------------------------------|------------------------|
+| `category` | ✔        | Product category (`lactate`, `bauturi`, ...) | `lactate`              |
+| `top`      | ✖        | Number of products to return (default: 5)     | `5`                    |
 
 **Example:**  
 `GET /products/best-value?category=lactate&top=5`
 
 ![image](https://github.com/user-attachments/assets/b18400fa-9b48-4cac-8b51-c518eb99a27c)
 
-
 ---
 
 ## 2. Price Comparison
 
-### - `GET /compare/{store1}/{date1}/{store2}/{date2}`  
-Compares prices of products common to two stores on the specified dates.  
+### `GET /compare/{store1}/{date1}/{store2}/{date2}`  
+Compares prices of products common to two stores.
 
-**Parameters:**  
-- `{store1}`, `{store2}`: store names  
-- `{date1}`, `{date2}`: dates in `YYYY-MM-DD` format  
+**Path parameters:**
 
-The endpoint returns a list of entries containing: product ID, name, price in each store, and which store offers the cheaper price (or "equal" if prices match).  
+| Parameter   | Required | Description             | Example           |
+|-------------|----------|-------------------------|-------------------|
+| `store1`    | ✔        | First store name        | `lidl`            |
+| `date1`     | ✔        | First store date        | `2025-05-01`      |
+| `store2`    | ✔        | Second store name       | `kaufland`        |
+| `date2`     | ✔        | Second store date       | `2025-05-01`      |
 
 **Example:**  
 `GET /compare/lidl/2025-05-01/kaufland/2025-05-01`
 
 ![image](https://github.com/user-attachments/assets/ea3bad5b-d48f-489f-a7dc-b0d4c7d36f16)
 
-
 ---
 
 ## 3. Optimized Shopping Basket
 
-### - `POST /basket/optimise`  
-Calculates the optimal way to purchase a list of products from multiple stores minimizing total cost.  
+### `POST /basket/optimise`  
+Calculates the optimal way to purchase products from multiple stores to minimize total cost.
 
-**Request body must contain a JSON array** of desired products with fields `productId` and `quantity`.  
+**Request body:**  
+A JSON array of products, each with:
 
-The application considers base prices and any active discounts to decide which store to buy each product from.  
+| Field       | Required | Description               | Example  |
+|-------------|----------|---------------------------|----------|
+| `productId` | ✔        | ID of the product         | `P001`   |
+| `quantity`  | ✔        | Quantity to purchase      | `2`      |
 
-**Response is a JSON object containing:**  
-- A recommendation message (e.g., "Basket optimized across X stores, see details below.")  
-- A list of baskets—one per store—in which each basket includes the store name, list of products allocated there (with `productId`, name, discounted unit price, quantity, and total for that product), and the total price for that store.
-
-**Example request body  
-
+**Example body:**
+```json
 [
-  {"productId": "P001", "quantity": 2},
-  {"productId": "P005", "quantity": 1}
+  { "productId": "P001", "quantity": 2 },
+  { "productId": "P005", "quantity": 1 }
 ]
+```
+
+**Response:**  
+A JSON object with:
+- A recommendation message (e.g., "Basket optimized across 2 stores")
+- A list of baskets per store, each with products, prices, and totals
 
 ![image](https://github.com/user-attachments/assets/bcab2d7b-ee84-4749-817d-174745f58558)
 
+---
 
 ## 4. Discounts and Promotions
 
-### - `GET /discounts/{store}/{date}`  
-Returns the list of discounts available in the specified store on the given date.  
+### `GET /discounts/{store}/{date}`  
+Returns the list of active discounts in the specified store on a given date.
 
-**Parameters:**  
-- `{store}`: the store name  
-- `{date}`: date in `YYYY-MM-DD` format  
+**Path parameters:**
 
-Returns a list of Discount objects with details: product ID, name, brand, quantity & unit, category, promotion period (fromDate – toDate), discount percentage, and store.  
+| Parameter | Required | Description               | Example        |
+|-----------|----------|---------------------------|----------------|
+| `store`   | ✔        | Store name                | `profi`        |
+| `date`    | ✔        | Date in `YYYY-MM-DD`      | `2025-05-08`   |
 
 **Example:**  
 `GET /discounts/profi/2025-05-08`
@@ -265,44 +277,38 @@ Returns a list of Discount objects with details: product ID, name, brand, quanti
 
 ---
 
-### - `GET /discounts/best-global`  
-Provides the largest active discounts across all stores for the current date.  
-
-For each discounted product, only the discount with the highest percentage and its store is returned, ordered descending by discount percentage.
+### `GET /discounts/best-global`  
+Returns the top discounts (by percentage) from all stores, based on the current date.
 
 ![image](https://github.com/user-attachments/assets/c58c6dfd-ee16-4c78-989c-5310dd8cf13a)
 
 ---
 
-### - `GET /discounts/new`  
-Lists recently added discounts that started today or very recently (e.g., yesterday).  
+### `GET /discounts/new`  
+Lists newly added discounts that started today or yesterday.
 
-Returns a list of new Discount objects or HTTP 204 No Content if none found.
+- Returns list of new discounts, or  
+- HTTP 204 No Content if none found
 
 ![image](https://github.com/user-attachments/assets/ca8e45fb-d515-4a84-9715-fe9af787d4ad)
 
 ---
 
 ### `GET /discounts/price-history`  
-Returns the discount and price history for one or more products.
+Returns discount and price history for one or more products.
 
-**Optional query parameters:**
+**Query parameters (all optional):**
 
-| Parameter     | Required | Description                                      |
-|---------------|----------|--------------------------------------------------|
-| `productId`   | ✖        | ID of the product to filter                     |
-| `store`       | ✖        | Store name (`lidl`, `kaufland`, `profi`, etc.)  |
-| `brand`       | ✖        | Product brand                                   |
-| `category`    | ✖        | Product category                                |
-| `from`        | ✖        | Start date (inclusive), format `YYYY-MM-DD`     |
-| `to`          | ✖        | End date (inclusive), format `YYYY-MM-DD`       |
+| Parameter     | Description                                     |
+|---------------|-------------------------------------------------|
+| `productId`   | Filter by product ID                            |
+| `store`       | Filter by store name (`lidl`, `kaufland`, etc.)|
+| `brand`       | Filter by product brand                         |
+| `category`    | Filter by product category                      |
+| `from`        | Start date (inclusive) – `YYYY-MM-DD`           |
+| `to`          | End date (inclusive) – `YYYY-MM-DD`             |
 
-
-Returns a list of PriceHistoryDTO objects containing product name, brand, category, store, discount start date, and discount percentage.  
-
-**Example:** 
-
-*History for a single product:*
+**Example:**  
 `GET /discounts/price-history?productId=P002`
 
 ![image](https://github.com/user-attachments/assets/a1eede1c-b0a1-49ee-93f6-0738488b1c50)
