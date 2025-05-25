@@ -39,7 +39,7 @@ public class AlertService {
 
                     // format triggered message with product info
                     String message = String.format(
-                            "✅ Product '%s' is now %.2f RON in '%s' (target was %.2f RON)",
+                            " Product '%s' is now %.2f RON in '%s' (target was %.2f RON)",
                             p.getProductName(), p.getPrice(), p.getStore(), alert.getTargetPrice()
                     );
 
