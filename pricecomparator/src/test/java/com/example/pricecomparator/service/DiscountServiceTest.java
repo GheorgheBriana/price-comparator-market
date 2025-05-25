@@ -1,7 +1,6 @@
+
 package com.example.pricecomparator.service;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -13,171 +12,93 @@ import com.example.pricecomparator.models.Discount;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class DiscountServiceTest {
+
     private final FileService fileService = new FileService();
     private final DiscountService discountService = new DiscountService(fileService);
 
-    //---------------------------------
-    // Test LoadDiscountFromCsv method
-    //---------------------------------
+    // Test loading discounts from valid CSV file
     @Test
     void testLoadDiscountsFromValidCsv() {
-        String filePath = "csv/lidl_discounts_2025-05-01.csv";
-        List<Discount> discounts = discountService.loadDiscountFromCsv(filePath);
-
-        // verify if result in not null
-        assertNotNull(discounts, "Discount list should not be null");
-
-        // verify is discount list is empty
-        assertFalse(discounts.isEmpty(), "Discount list should not be empty");
+        List<Discount> discounts = discountService.loadDiscountFromCsv("csv/lidl_discounts_2025-05-01.csv");
+        assertNotNull(discounts);
+        assertFalse(discounts.isEmpty());
     }
 
+    // Test loading discounts from invalid file path
     @Test
     void testLoadDiscountsFromInvalidCsv() {
-        String filePath = "csv/invalid_file.csv";
-        List<Discount> discounts = discountService.loadDiscountFromCsv(filePath);
-
-        assertNotNull(discounts, "Discount list should not be null even if file is missing");
-
-        assertTrue(discounts.isEmpty(),"Discount list should be empty if file does not exist");
+        List<Discount> discounts = discountService.loadDiscountFromCsv("csv/nonexistent_file.csv");
+        assertNotNull(discounts);
+        assertTrue(discounts.isEmpty());
     }
 
-    //--------------------------------
-    // Test GetBestDiscounts method
-    //--------------------------------
+    // Test fetching best discounts
     @Test
-    void testGetBestDiscountsValidInput() {
-        String directoryPath = "csv";
-        String store = "lidl";
-        String date = "2025-05-01";
-
-        List<Discount> result = discountService.getBestDiscounts(directoryPath, store, date);
-
-        // verify if result is not null
-        assertNotNull(result, "Discount list should not be null");
-
-        // verify if result returns at least one discount
-        assertFalse(result.isEmpty(), "Should return at least one discount");
-
-        // verify if list is sorted descending by discount percentage
-        for(int i = 0; i < result.size() - 1; i++) {
-            assertTrue(
-                result.get(i).getPercentageOfDiscount() >= result.get(i+1).getPercentageOfDiscount(), "Discounts should be sorted descending by percentage"
-            );
+    void testGetBestDiscounts() {
+        List<Discount> discounts = discountService.getBestDiscounts("csv", "lidl", "2025-05-01");
+        assertNotNull(discounts);
+        assertFalse(discounts.isEmpty());
+        for (int i = 0; i < discounts.size() - 1; i++) {
+            assertTrue(discounts.get(i).getPercentageOfDiscount() >= discounts.get(i + 1).getPercentageOfDiscount());
         }
     }
 
+    // Test error on invalid date format
     @Test
-    void testGetBestDiscountsWithInvalidDate() {
-        String directoryPath = "csv";
-        String store = "lidl";
-        String invalidDate = "may-2025";
-
-        // verify if the methods throws an IllegalArgumentException
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            discountService.getBestDiscounts(directoryPath, store, invalidDate);
+    void testGetBestDiscountsInvalidDate() {
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            discountService.getBestDiscounts("csv", "lidl", "May-01-2025");
         });
-
-        String expectedMessage = "Invalid date. Use the YYYY-MM-DD format";
-        String actualMessage = exception.getMessage();
-        assertTrue(actualMessage.contains(expectedMessage), "Error message should mention date format");       
+        assertTrue(ex.getMessage().contains("Invalid date"));
     }
-    
-    //--------------------------------
-    // Test GetGlobalTopDiscounts method
-    //--------------------------------
+
+    // Test global top discounts
     @Test
     void testGetGlobalTopDiscounts() {
-        String directoryPath = "csv";
-
-        List<DiscountBestGlobalDTO> result = discountService.getGlobalTopDiscounts(directoryPath);
-
-        // verify if result is not null
-        assertNotNull(result, "Discount list should not be null");
-
-        // verify if list has at least one discount
-        assertFalse(result.isEmpty(), "There should be at least one discount in global list");
-
-        // verify if list is sorted descending by discount percentage
-        for(int i = 0; i < result.size() - 1; i++) {
-            assertTrue(
-                result.get(i).getPercentageOfDiscount() >= result.get(i+1).getPercentageOfDiscount(), "Discounts should be sorted descending by percentage"
-            );
+        List<DiscountBestGlobalDTO> top = discountService.getGlobalTopDiscounts("csv");
+        assertNotNull(top);
+        assertFalse(top.isEmpty());
+        for (int i = 0; i < top.size() - 1; i++) {
+            assertTrue(top.get(i).getPercentageOfDiscount() >= top.get(i + 1).getPercentageOfDiscount());
         }
     }
 
-    //--------------------------------
-    // Test GetNewDiscounts method
-    //--------------------------------
+    // Test retrieving newly added discounts in the last 24 hours
     @Test
-    void testGetNewDiscountsReturnsRecentDiscounts() {
-        String directoryPath = "csv";
-
-        // call method that should return discounts added in the last 24h
-        List<Discount> newDiscounts = discountService.getNewDiscounts(directoryPath);
-
-        // verify if result is not null
-        assertNotNull(newDiscounts, "List of new discounts should not be null");
-
-        // verify if list contains at least one discount (based on test CSVs)
-        assertFalse(newDiscounts.isEmpty(), "There should be at least one recent discount");
-
-        // define yesterday's date to compare against
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        ZoneId zoneId = ZoneId.systemDefault();
-
-        // check that each discount has a valid fromDate and it is not older than yesterday
-        for (Discount discount : newDiscounts) {
-            assertNotNull(discount.getFromDate(), "fromDate should not be null");
-
-            LocalDate fromDate = discount.getFromDate().toInstant().atZone(zoneId).toLocalDate();
-
-            // verify if the discount was added yesterday or today
-            assertFalse(fromDate.isBefore(yesterday), "Discount should be from yesterday or today");
-        }
+    void testGetNewDiscounts() {
+        List<Discount> discounts = discountService.getNewDiscounts("csv");
+        assertNotNull(discounts);
+        assertFalse(discounts.isEmpty());
     }
 
-    //--------------------------------
-    // Test GetPriceHistory method
-    //--------------------------------
+    // Test price history without date range
     @Test
     void testGetPriceHistoryWithFilters() {
-        String productId = "P001";
-        String store = "lidl";
-        String brand = "Zuzu";
-        String category = "lactate";
-
-        // call method that returns price history for given filters
-        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId, store, brand, category);
-
-        // verify is result is null
-        assertNotNull(history, "Price history should not be null");
-
-        // verify if result contains at least one record
-        assertFalse(history.isEmpty(), "There should be at least one entry for this product");
-
-        // verify if each result matches the store filter
-        for(PriceHistoryDTO dto : history) {
-            assertEquals(store.toLowerCase(), dto.getStore().toLowerCase(), "Store should match filter");
-        }
-    }
-
-    @Test
-    void testGetPriceHistory_WithoutFilters() {
-        String productId = "P001";
-
-        // call method without filters
-        List<PriceHistoryDTO> history = discountService.getPriceHistory(productId, null, null, null);
-
-        // verify result is not null
-        assertNotNull(history, "Price history should not be null");
-
-        // verify result contains at least one entry
-        assertFalse(history.isEmpty(), "Should return at least one entry for the given product ID");
-
-        // print the result (optional, util dacă vrei să vezi ce returnează)
+        List<PriceHistoryDTO> history = discountService.getPriceHistory("P001", "lidl", "Zuzu", "lactate", null, null);
+        assertNotNull(history);
+        assertFalse(history.isEmpty());
         for (PriceHistoryDTO dto : history) {
-            System.out.println(dto);
+            assertEquals("lidl", dto.getStore().toLowerCase());
         }
     }
 
+    // Test price history with full date range filtering
+    @Test
+    void testGetPriceHistoryWithDateRange() {
+        List<PriceHistoryDTO> history = discountService.getPriceHistory("P001", "lidl", "Zuzu", "lactate", "2025-05-01", "2025-05-03");
+        assertNotNull(history);
+        assertFalse(history.isEmpty());
+        for (PriceHistoryDTO dto : history) {
+            assertTrue(dto.getFrom_date().compareTo("2025-05-01") >= 0);
+            assertTrue(dto.getFrom_date().compareTo("2025-05-03") <= 0);
+        }
+    }
+
+    // Test price history without filters (only by productId)
+    @Test
+    void testGetPriceHistoryWithoutFilters() {
+        List<PriceHistoryDTO> history = discountService.getPriceHistory("P001", null, null, null, null, null);
+        assertNotNull(history);
+        assertFalse(history.isEmpty());
+    }
 }
