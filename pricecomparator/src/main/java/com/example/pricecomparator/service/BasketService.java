@@ -37,6 +37,9 @@ public class BasketService {
         Map<String, List<Product>> groupedByStore = new HashMap<>();
 
         for(BasketRequestItemDTO item : basketItems) {
+            if (item.getQuantity() <= 0) {
+                throw new IllegalArgumentException("Quantity must be positive");
+            }
             String productId = item.getProductId();
             int quantity = item.getQuantity();
 
