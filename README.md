@@ -21,7 +21,6 @@
     <li>
       <a href="#ii-how-to-run-the-application-locally">II. How to Run the Application Locally</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#running-steps">Running Steps</a></li>
       </ul>
     </li>
