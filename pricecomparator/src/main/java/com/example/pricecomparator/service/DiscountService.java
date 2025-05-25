@@ -258,7 +258,7 @@ public class DiscountService {
         
         try {
             String datePart = filename.replaceAll(".*_(\\d{4}-\\d{2}-\\d{2})\\.csv", "$1");
-            // parse the extracted segment into a LocalDate
+            // pyarse the extracted segment into a LocalDate
             return LocalDate.parse(datePart);
         } catch (Exception e) {
             log.warn("Could not extract date from filename: {}", filename);
@@ -266,31 +266,40 @@ public class DiscountService {
         }
     }
 
-    // Retrieves the price history for a specific product, filtered by optional store, brand, and category
-    public List<PriceHistoryDTO> getPriceHistory(String productId, String store, String brand, String category) {
-        log.info("Fetching price history for productId={}, store={}, brand={}, category={}",
-                 productId, store, brand, category);
-        
-        // find all discount files in the 'csv' directory containing 'discounts'
+    // Retrieves the price history for a specific product, filtered by optional store, brand, category, and date range.
+    // Applies active discounts and calculates the effective price, returning a time series DTO list.
+    public List<PriceHistoryDTO> getPriceHistory(String productId, String store, String brand, String category, String from, String to) {
+        log.info("Fetching price history for productId={}, store={}, brand={}, category={}, from={}, to={}",
+                productId, store, brand, category, from, to);
+
+        // Retrieve all discount files from the 'csv' directory
         List<String> allFiles = fileService.getFileNames("csv", "discounts", "");
-        
+
         List<PriceHistoryDTO> historyList = new ArrayList<>();
-        
-        // loop through all files to load discounts
+
+        // Iterate through each file and extract discount data
         for (String file : allFiles) {
             List<Discount> discounts = loadDiscountFromCsv(file);
 
             for (Discount discount : discounts) {
-                if (!discount.getProductId().equals(productId)) {
+                // If productId is provided, match it strictly
+                if (productId != null && !discount.getProductId().equals(productId)) {
                     continue;
                 }
-                // extract filename, store name, and date parts
+
+                // Extract store name and date from file name (e.g., lidl_discounts_2025-05-01.csv)
                 String fileName = file.substring(file.lastIndexOf("/") + 1);
                 String fileStore = fileName.substring(0, fileName.indexOf("_"));
                 String[] parts = fileName.split("_");
                 String date = parts[2].replace(".csv", "");
 
-                // apply optional filters: store, brand, category
+                // Skip entry if date is outside of requested range (inclusive)
+                if ((from != null && date.compareTo(from) < 0) || (to != null && date.compareTo(to) > 0)) {
+                    log.debug("Skipping entry from {} on {}: outside range {} to {}", fileStore, date, from, to);
+                    continue;
+                }
+
+                // Apply all optional filters: store, brand, category
                 if (
                     (store == null || discount.getStore().equalsIgnoreCase(store)) &&
                     (brand == null || discount.getBrand().equalsIgnoreCase(brand)) &&
@@ -298,15 +307,29 @@ public class DiscountService {
                 ) {
                     log.debug("Adding history entry from {} on {}: {}% off",
                             fileStore, date, discount.getPercentageOfDiscount());
-                    
-                    // build DTO and add to result list
-                     PriceHistoryDTO dto = new PriceHistoryDTO(
-                        discount.getProductName(),              // productName
-                        discount.getBrand(),                    // brand
-                        discount.getProductCategory(),          // category
-                        date,                                   // date string from filename
-                        fileStore,                              // store name from filename
-                        discount.getPercentageOfDiscount()      // discount percentage
+
+                    // Get base price from product CSV corresponding to the same day and store
+                    Double basePrice = getBasePriceFromProductFile(discount.getProductId(), fileStore, date);
+
+                    // If the base price is not found, skip this entry
+                    if (basePrice == null) {
+                        log.warn("Missing base price for product {} on {} in store {}", discount.getProductId(), date, fileStore);
+                        continue;
+                    }
+
+                    // Apply discount to compute the effective price
+                    double effectivePrice = basePrice * (1 - discount.getPercentageOfDiscount() / 100.0);
+
+                    // Build DTO object and add to final results list
+                    PriceHistoryDTO dto = new PriceHistoryDTO(
+                        discount.getProductName(),
+                        discount.getBrand(),
+                        discount.getProductCategory(),
+                        date,
+                        fileStore,
+                        discount.getPercentageOfDiscount(),
+                        basePrice,
+                        effectivePrice
                     );
 
                     historyList.add(dto);
@@ -317,6 +340,7 @@ public class DiscountService {
         log.info("Total history entries returned: {}", historyList.size());
         return historyList;
     }
+
     // Calculates the price after applying the first active discount found for the given product
     public double getDiscountedPrice(Product product) {
         log.info("Calculating discounted price for product {} at store {} (base price={})",
@@ -361,6 +385,52 @@ public class DiscountService {
                 product.getProductId(), product.getStore(), product.getPrice());
         return product.getPrice();
     
+    }
+
+    // Loads the base price for a product from a specific product file (e.g. lidl_2025-05-01.csv).
+    // This price is later used to calculate the effective price with discount applied.
+    public Double getBasePriceFromProductFile(String productId, String store, String date) {
+        // Build full file path based on store and date
+        String productFile = "csv/" + store.toLowerCase() + "_" + date + ".csv";
+
+        // Load the file from classpath
+        InputStream is = getClass().getClassLoader().getResourceAsStream(productFile);
+        if (is == null) {
+            log.warn("Product file not found: {}", productFile);
+            return null;
+        }
+
+        // Open file and scan each line
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+            String line;
+            boolean firstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                // Skip the first line (header) and the currency line
+                if (firstLine || line.toLowerCase().contains("currency")) {
+                    firstLine = false;
+                    continue;
+                }
+
+                // Split line into fields by semicolon
+                String[] fields = line.split(";");
+
+                // Look for matching productId in column 0
+                if (fields.length >= 7 && fields[0].trim().equalsIgnoreCase(productId)) {
+                    try {
+                        // Parse base price from column 6
+                        return Double.parseDouble(fields[6].trim());
+                    } catch (NumberFormatException e) {
+                        log.warn("Failed to parse price for product {} in {}", productId, productFile);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            log.error("Error reading product file {}: {}", productFile, e.getMessage());
+        }
+
+        // Return null if price was not found or an error occurred
+        return null;
     }
 
     // Method used in getBestDiscounts
