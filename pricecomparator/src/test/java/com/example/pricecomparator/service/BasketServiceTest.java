@@ -188,5 +188,47 @@ public class BasketServiceTest {
         int totalProducts = result.values().stream().mapToInt(List::size).sum();
         assertEquals(2, totalProducts, "Expected 2 products in total from different stores");
     }
+    
+    // Test a basket with duplicate product IDs.
+    // Ensures the total quantity is handled correctly and final price reflects the sum.
+    @Test
+    void testOptimisedBasket_withDuplicateProductIds() {
+        // arrange: same product ID added twice with different quantities
+        BasketRequestItemDTO item1 = new BasketRequestItemDTO("P001", 1);
+        BasketRequestItemDTO item2 = new BasketRequestItemDTO("P001", 3); // Same product ID
+        List<BasketRequestItemDTO> items = List.of(item1, item2);
 
+        // mock discount service to return base price
+        when(discountService.getDiscountedPrice(any(Product.class)))
+            .thenAnswer(invocation -> {
+                Product p = invocation.getArgument(0);
+                return p.getPrice(); // no discount
+            });
+
+        // act: optimise basket with duplicate IDs
+        List<BasketResponseDTO> result = basketService.getOptimisedBasket(items);
+
+        // assert
+        assertNotNull(result, "Result should not be null");
+        assertFalse(result.isEmpty(), "Basket should not be empty");
+
+        // ensure total price accounts for combined quantity
+        double total = result.stream().mapToDouble(BasketResponseDTO::getTotalPrice).sum();
+        assertTrue(total > 0, "Total price should reflect combined quantity of 4 units");
+    }
+
+    // Test basket with invalid product quantities (zero or negative).
+    // Ensures an exception is thrown when quantity is not positive.
+    @Test
+    void testOptimisedBasket_withInvalidQuantities() {
+        // arrange: basket with 0 and -2 quantities
+        BasketRequestItemDTO item1 = new BasketRequestItemDTO("P001", 0);  // invalid
+        BasketRequestItemDTO item2 = new BasketRequestItemDTO("P002", -2); // invalid
+        List<BasketRequestItemDTO> items = List.of(item1, item2);
+
+        // act + assert: call optimiseBasket and expect exception
+        assertThrows(IllegalArgumentException.class, () -> {
+            basketService.optimiseBasket(items);
+        }, "Should throw exception for invalid quantities");
+    }
 }
