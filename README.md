@@ -3,6 +3,7 @@
 <img src="https://github.com/user-attachments/assets/79c8a0ff-b750-4e93-adea-c218fa2d3e03" alt="Banner" width="100%" />
 
 <!-- TABLE OF CONTENTS -->
+<!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
@@ -10,18 +11,36 @@
     <li><a href="#technologies-used">Technologies Used</a></li>
     <li><a href="#features">Features</a></li>
     <li>
-      <a href="#getting-started">Getting Started</a>
+      <a href="#i-project-structure">I. Project Structure</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#how-to-run">How to Run</a></li>
+        <li><a href="#1-srcmainjava--main-source-code">1. src/main/java – Main source code</a></li>
+        <li><a href="#2-srcmainresources--static-resources-and-configuration">2. src/main/resources – Static resources and configuration</a></li>
+        <li><a href="#3-srctestjava--tests">3. src/test/java – Tests</a></li>
+        <li><a href="#4-project-root--build-and-configuration-files">4. Project root – Build and configuration files</a></li>
       </ul>
     </li>
-    <li><a href="#api-endpoints">API Endpoints</a></li>
-    <li><a href="#testing">Testing</a></li>
-    <li><a href="#future-improvements">Future Improvements</a></li>
-    <li><a href="#submission-details">Submission Details</a></li>
+    <li>
+      <a href="#ii-how-to-run-the-application-locally">II. How to Run the Application Locally</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#running-steps">Running Steps</a></li>
+      </ul>
+    </li>
+    <li><a href="#iii-main-features">III. Main Features</a></li>
+    <li>
+      <a href="#api-endpoints">API Endpoints</a>
+      <ul>
+        <li><a href="#1-products">1. Products</a></li>
+        <li><a href="#2-price-comparison">2. Price Comparison</a></li>
+        <li><a href="#3-optimized-shopping-basket">3. Optimized Shopping Basket</a></li>
+        <li><a href="#4-discounts-and-promotions">4. Discounts and Promotions</a></li>
+        <li><a href="#5-price-alerts">5. Price Alerts</a></li>
+      </ul>
+    </li>
+    <li><a href="#v-assumptions-and-simplifications-in-implementation">V. Assumptions and Simplifications in Implementation</a></li>
   </ol>
 </details>
+
 
 ---
 
@@ -351,4 +370,37 @@ If no alerts are triggered, the response will be an empty list or HTTP 204 No Co
 ![image](https://github.com/user-attachments/assets/59279a2a-7221-449e-8ee7-b615943c8e02)
 
 
+## V. Assumptions and Simplifications in Implementation
 
+During the development of this project, several assumptions and simplifications were made to limit the application’s complexity:
+
+- **Data stored in files, without a database:**  
+  The application does not use a relational database or any persistent storage system. All product and discount information is read directly from CSV files located in the `resources` folder. Data updates are made by replacing or adding CSV files. During runtime, data is kept only temporarily in memory and reloaded on each request without caching.
+
+- **Global unique product identifier:**  
+  It is assumed that `productId` (the product code) is globally unique and consistent across different stores. This enables price comparison between stores (via the `/compare` endpoint) and basket optimization. Although in reality stores may have different internal codes for the same item, this project uses a common ID for simplification (e.g., `P001` represents the same product in Lidl, Kaufland, etc.).
+
+- **No authentication or user roles:**  
+  All endpoints are unsecured; no authentication or authorization is implemented. Any user can access the API directly. In a real-world application, security would be essential for sensitive operations but was omitted here for simplicity.
+
+- **Volatile storage for price alerts:**  
+  Price alerts created via `/alerts` are stored only in application memory (an in-memory static list). Alerts are not persisted to a database or file, so they are lost if the server restarts.
+
+- **Manual alert checking:**  
+  There is no automated process (cron job, real-time notifications) to alert users when a price alert condition is met. Users must explicitly call `/alerts/check` to verify if any alerts are triggered. This simplified model could be enhanced with schedulers, WebSocket, or email notifications in a production system.
+
+- **Data and logic specific to demo context:**  
+  The CSV file structure and application logic reflect specific requirements. For example, CSV files expect semicolon delimiters and exact column order. Discounts are considered “new” if their start date is today or very recent, and “active” if the current date falls within the promotion interval. Complex scenarios like overlapping promotions or new products without history are not fully handled.
+
+- **Basket optimization ignores external factors:**  
+  The optimization algorithm treats each product independently, selecting the store offering the lowest (possibly discounted) price. It does not consider transport costs, store stock limits, or other constraints. This approach focuses on demonstrating core logic; real applications would require more complex factors.
+
+- **Fixed date and input formats:**  
+  The application assumes dates in `YYYY-MM-DD` format in URLs and files. Input validation is minimal — invalid dates throw exceptions caught by a global handler that returns generic error messages. Store names in URLs must exactly match the CSV naming (e.g., `lidl`, `kaufland` in lowercase). Robust validation could improve usability.
+
+- **No graphical user interface (UI):**  
+  The project only provides a backend REST API. Interactions occur solely via HTTP requests and JSON responses. No frontend or web pages are included. A UI would be developed separately or accessed via third-party tools (e.g., Postman).
+
+---
+
+These clarifications highlight that certain aspects were simplified for demonstration purposes. Extending the project for production would require adding security, persistent storage, advanced validation, and possibly UI components. Nonetheless, the implemented features provide a solid foundation for price comparison and discount management as initially required.
